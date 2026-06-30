@@ -16,6 +16,11 @@ class MemberAccount extends CommonModel
 
     protected $append = ['statusText', 'authorizeArr'];
 
+    public function getAvatarAttr($value)
+    {
+        return normalizeStaticUrl($value);
+    }
+
     /**
      * 获取当前用户菜单
      * @throws DataNotFoundException

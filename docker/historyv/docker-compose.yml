@@ -1,0 +1,73 @@
+# HistoryV 基线 — 一键本地验收环境
+# 目录要求：PearProject/pearProject 与 PearProject/pearProjectApi 同级
+
+services:
+  mysql:
+    image: docker.m.daocloud.io/library/mysql:5.7
+    platform: linux/amd64
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pearproject
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../../data/pearproject.sql:/docker-entrypoint-initdb.d/01-pearproject.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    ports:
+      - "3307:3306"
+
+  redis:
+    image: docker.m.daocloud.io/library/redis:7-alpine
+    ports:
+      - "6380:6379"
+
+  app:
+    build:
+      context: ..
+      dockerfile: historyv/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../:/app
+      - ./.env.docker:/docker-env/.env.docker:ro
+    environment:
+      PEAR_DB_HOST: mysql
+      PEAR_DB_PORT: "3306"
+      PEAR_DB_USER: root
+      PEAR_DB_PASS: root
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  frontend-build:
+    profiles: ["build"]
+    image: docker.m.daocloud.io/library/node:16-alpine
+    working_dir: /frontend
+    volumes:
+      - ../../../pearProject:/frontend
+      - ../../static/dist:/output
+    environment:
+      VUE_APP_CROSS_DOMAIN: "false"
+      VUE_APP_API_URL: http://127.0.0.1:8080/index.php
+      VUE_APP_WS_URI: ""
+      VUE_APP_HOME_PAGE: /home
+      VUE_APP_BUILD_PATH: /static/dist/
+    command: >
+      sh -c "
+        npm install --registry=https://registry.npmmirror.com &&
+        npm run build &&
+        rm -rf /output/* &&
+        cp -r dist/* /output/
+      "
+
+volumes:
+  mysql_data:

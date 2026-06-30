@@ -78,6 +78,27 @@ function setCurrentOrganization($data)
     return session('organization', $data);
 }
 
+/** vilson 静态 CDN 默认头像（HTTPS 证书已过期，使用 HTTP） */
+function defaultMemberAvatar()
+{
+    return 'http://static.vilson.online/cover.png';
+}
+
+/**
+ * 将已过期的 vilson HTTPS 静态资源链接转为 HTTP
+ */
+function normalizeStaticUrl($url)
+{
+    if (!is_string($url) || $url === '') {
+        return $url;
+    }
+    return str_replace(
+        ['https://static.vilson.xyz', 'https://static.vilson.online', 'https://beta.vilson.xyz'],
+        ['http://static.vilson.xyz', 'http://static.vilson.online', 'http://beta.vilson.xyz'],
+        $url
+    );
+}
+
 /**
  * 打印输出数据到文件
  * @param mixed $data 输出的数据

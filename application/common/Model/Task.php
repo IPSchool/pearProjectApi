@@ -21,6 +21,11 @@ class Task extends CommonModel
 {
     protected $append = ['priText', 'statusText', 'liked', 'stared', 'tags', 'childCount', 'hasUnDone', 'parentDone', 'hasComment', 'hasSource', 'canRead'];
 
+    public function getDescriptionAttr($value)
+    {
+        return normalizeStaticUrl($value);
+    }
+
     public function read($code)
     {
         if (!$code) {

@@ -162,7 +162,7 @@ class Login extends BasicApi
             'email' => $data['email'],
             'name' => $data['name'],
             'account' => RandomService::alnumLowercase(),
-            'avatar' => 'https://static.vilson.online/cover.png',
+            'avatar' => defaultMemberAvatar(),
             'status' => 1,
             'code' => createUniqueCode('member'),
             'password' => $data['password'],
