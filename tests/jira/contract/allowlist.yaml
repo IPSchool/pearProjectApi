@@ -1,0 +1,77 @@
+# Gate B-α 端点白名单 — 实现 /rest/api/3 时须全部通过
+# 对应 JiraAPI测试设计.md §3.1 ~ §3.4
+
+phase: B-alpha
+
+auth:
+  - id: JIRA-L1-A01
+    method: GET
+    path: /rest/api/3/myself
+    auth: none
+    expect_status: 401
+  - id: JIRA-L1-A02
+    method: GET
+    path: /rest/api/3/myself
+    auth: bad
+    expect_status: 401
+  - id: JIRA-L1-A03
+    method: GET
+    path: /rest/api/3/myself
+    auth: basic
+    expect_status: 200
+    expect_fields: [accountId, displayName]
+
+user:
+  - id: JIRA-L1-U01
+    method: GET
+    path: /rest/api/3/myself
+    auth: basic
+    expect_status: 200
+    expect_fields: [accountId, displayName, emailAddress]
+  - id: JIRA-L1-U02
+    method: GET
+    path: /rest/api/3/user
+    auth: basic
+    query: accountId={accountId}
+    expect_status: 200
+
+project:
+  - id: JIRA-L1-P01
+    method: GET
+    path: /rest/api/3/project/search
+    auth: basic
+    expect_status: 200
+    expect_fields: [values, total]
+  - id: JIRA-L1-P02
+    method: GET
+    path: /rest/api/3/project/{projectKey}
+    auth: basic
+    expect_status: 200
+    expect_fields: [key, id]
+  - id: JIRA-L1-P04
+    method: GET
+    path: /rest/api/3/project/NOPE
+    auth: basic
+    expect_status: 404
+    expect_jira_error: true
+
+issue:
+  - id: JIRA-L1-I01
+    method: POST
+    path: /rest/api/3/issue
+    auth: basic
+    expect_status: 201
+    expect_fields: [id, key]
+  - id: JIRA-L1-I02
+    method: GET
+    path: /rest/api/3/issue/{issueKey}
+    auth: basic
+    expect_status: 200
+    expect_fields: [fields]
+  - id: JIRA-L1-I06
+    method: POST
+    path: /rest/api/3/issue
+    auth: basic
+    body: invalid
+    expect_status: 400
+    expect_jira_error: true

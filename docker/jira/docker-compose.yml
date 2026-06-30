@@ -1,0 +1,52 @@
+# Gate B — Jira API 兼容改造环境
+# 与 HistoryV (8080) 并行：本 compose 使用 8090 / 3308 / 6381
+
+services:
+  mysql:
+    image: docker.m.daocloud.io/library/mysql:5.7
+    platform: linux/amd64
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pearproject
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+    volumes:
+      - jira_mysql_data:/var/lib/mysql
+      - ../../data/pearproject.sql:/docker-entrypoint-initdb.d/01-pearproject.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    ports:
+      - "3308:3306"
+
+  redis:
+    image: docker.m.daocloud.io/library/redis:7-alpine
+    ports:
+      - "6381:6379"
+
+  app:
+    build:
+      context: ..
+      dockerfile: jira/Dockerfile
+    ports:
+      - "8090:8090"
+    volumes:
+      - ../../:/app
+      - ./.env.docker:/docker-env/.env.docker:ro
+    environment:
+      PEAR_DB_HOST: mysql
+      PEAR_DB_PORT: "3306"
+      PEAR_DB_USER: root
+      PEAR_DB_PASS: root
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+volumes:
+  jira_mysql_data:
