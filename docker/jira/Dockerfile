@@ -1,4 +1,4 @@
-FROM docker.m.daocloud.io/library/php:7.4-fpm
+FROM docker.m.daocloud.io/library/php:8.2-fpm
 
 RUN cp /etc/apt/sources.list /etc/apt/sources.list.bak \
   && echo "deb http://mirrors.aliyun.com/debian bullseye main" > /etc/apt/sources.list \
@@ -10,7 +10,7 @@ RUN apt-get install -y --no-install-recommends \
     libzip-dev wget git unzip \
   && docker-php-ext-configure gd --with-freetype --with-jpeg \
   && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql zip \
-  && pecl install redis-5.3.7 igbinary-3.2.7 \
+  && pecl install redis igbinary \
   && docker-php-ext-enable redis igbinary \
   && rm -rf /var/lib/apt/lists/*
 

@@ -19,6 +19,12 @@ echo ""
 python3 "$DIR/smoke/test_b_alpha.py"
 alpha=$?
 
+python3 "$DIR/smoke/test_b_beta.py"
+beta=$?
+
 python3 "$DIR/smoke/test_jira_python.py" || true
 
-exit "$alpha"
+if [ "$alpha" -ne 0 ] || [ "$beta" -ne 0 ]; then
+  exit 1
+fi
+exit 0

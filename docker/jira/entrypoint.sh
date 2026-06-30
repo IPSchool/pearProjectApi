@@ -20,6 +20,10 @@ try {
 done
 echo "[GateB] MySQL is ready."
 
+if [ ! -f think ]; then
+  touch think
+fi
+
 if [ ! -f .env ]; then
   echo "[GateB] Creating .env from docker template..."
   cp /docker-env/.env.docker .env
@@ -45,6 +49,6 @@ if [ -x /app/docker/jira/init-jira-fixture.sh ]; then
 fi
 
 echo "[GateB] Starting php-fpm + nginx on :8090..."
-echo "[GateB] Jira API: http://127.0.0.1:8090/rest/api/3/ (compat layer not implemented yet)"
+echo "[GateB] Jira API: http://127.0.0.1:8090/rest/api/3/"
 php-fpm -D
 exec nginx -g 'daemon off;'

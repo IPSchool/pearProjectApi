@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-# Gate B Fixture 初始化 — 创建 jira-test 用户、API Token、TST 项目（待 Jira 层实现后完善）
+# Gate B Fixture 初始化 — 创建 jira-test 用户、TST 项目
 set -euo pipefail
 
-echo "[GateB] init-jira-fixture: placeholder"
+DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$DIR/../.."
+
+echo "[GateB] init-jira-fixture"
 echo "  Target user:  jira-test@example.com"
 echo "  Target token: gate-b-test-token (see tests/jira/env.sh.example)"
 echo "  Target project key: TST"
-echo "[GateB] Full fixture will run after /rest/api/3 auth + project modules land."
+
+php "$DIR/fixture-init.php"

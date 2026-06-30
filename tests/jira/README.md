@@ -47,6 +47,10 @@ cd ../../tests/jira/smoke
 
 Auth + User + Project + Issue CRUD（见 `contract/allowlist.yaml`）。
 
+## B-β 范围
+
+Search (JQL) + User Search + Comment + Transition（`smoke/test_b_beta.py`）。
+
 ## 开始编码前 Checklist
 
 见 JiraAPI测试设计.md §11。全部勾选后方可实现 `/rest/api/3`。
