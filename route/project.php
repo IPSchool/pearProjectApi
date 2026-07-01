@@ -124,6 +124,39 @@ $routes = [
     ['organization/edit', 'Organization', 'edit'],
     ['organization/delete', 'Organization', 'delete'],
     ['organization/_quitOrganization', 'Organization', '_quitOrganization'],
+    // Account
+    ['account/index', 'Account', 'index'],
+    ['account/_allList', 'Account', '_allList'],
+    ['account/read', 'Account', 'read'],
+    ['account/auth', 'Account', 'auth'],
+    ['account/_joinByInviteLink', 'Account', '_joinByInviteLink'],
+    ['account/_syncDetail', 'Account', '_syncDetail'],
+    ['account/add', 'Account', 'add'],
+    ['account/edit', 'Account', 'edit'],
+    ['account/del', 'Account', 'del'],
+    ['account/forbid', 'Account', 'forbid'],
+    ['account/resume', 'Account', 'resume'],
+    // Department
+    ['department/index', 'Department', 'index'],
+    ['department/read', 'Department', 'read'],
+    ['department/save', 'Department', 'save'],
+    ['department/edit', 'Department', 'edit'],
+    ['department/delete', 'Department', 'delete'],
+    // DepartmentMember
+    ['departmentMember/index', 'DepartmentMember', 'index'],
+    ['departmentMember/detail', 'DepartmentMember', 'detail'],
+    ['departmentMember/searchInviteMember', 'DepartmentMember', 'searchInviteMember'],
+    ['departmentMember/inviteMember', 'DepartmentMember', 'inviteMember'],
+    ['departmentMember/removeMember', 'DepartmentMember', 'removeMember'],
+    ['departmentMember/_downloadTemplate', 'DepartmentMember', '_downloadTemplate'],
+    ['departmentMember/uploadFile', 'DepartmentMember', 'uploadFile'],
+    // TaskTag
+    ['taskTag/index', 'TaskTag', 'index'],
+    ['taskTag/save', 'TaskTag', 'save'],
+    ['taskTag/edit', 'TaskTag', 'edit'],
+    ['taskTag/delete', 'TaskTag', 'delete'],
+    // ProjectCollect
+    ['projectCollect/collect', 'ProjectCollect', 'collect'],
 ];
 
 Route::group('project', function () use ($ns, $routes) {

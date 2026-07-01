@@ -67,6 +67,17 @@ cd ../.. && tests/jira/smoke/run.sh
 
 **下一批**：`Account`、`Department`、`TaskTag` 等。
 
+## Phase 3 Batch 4（Legacy project — Account / Department / TaskTag）
+
+| 项 | 说明 |
+|----|------|
+| 控制器 | `Account`、`Department`、`DepartmentMember`、`TaskTag`、`ProjectCollect` |
+| 路由 | `route/project.php` 扩展 33 端点 |
+| TP6 修复 | 全量 `request_only()` 替换 `Request::only` / `$request::only` |
+| 验收 | `POST /project/account/index`、`/project/department/index`、`/project/departmentMember/index` 返回 200 |
+
+**下一批**：`Auth`、`Menu`、`Node`、`Events` 等。
+
 ## HistoryV / Gate A
 
 仍在 **HistoryV 分支 + TP5 + PHP 7.4**，本分支不保证 Legacy Web API 可用。
