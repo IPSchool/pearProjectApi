@@ -194,6 +194,46 @@ $routes = [
     // InviteLink
     ['inviteLink/save', 'InviteLink', 'save'],
     ['inviteLink/_read', 'InviteLink', '_read'],
+    // ProjectFeatures
+    ['projectFeatures/index', 'ProjectFeatures', 'index'],
+    ['projectFeatures/save', 'ProjectFeatures', 'save'],
+    ['projectFeatures/edit', 'ProjectFeatures', 'edit'],
+    ['projectFeatures/delete', 'ProjectFeatures', 'delete'],
+    // ProjectVersion
+    ['projectVersion/index', 'ProjectVersion', 'index'],
+    ['projectVersion/save', 'ProjectVersion', 'save'],
+    ['projectVersion/edit', 'ProjectVersion', 'edit'],
+    ['projectVersion/read', 'ProjectVersion', 'read'],
+    ['projectVersion/changeStatus', 'ProjectVersion', 'changeStatus'],
+    ['projectVersion/addVersionTask', 'ProjectVersion', 'addVersionTask'],
+    ['projectVersion/removeVersionTask', 'ProjectVersion', 'removeVersionTask'],
+    ['projectVersion/_getVersionTask', 'ProjectVersion', '_getVersionTask'],
+    ['projectVersion/_getVersionLog', 'ProjectVersion', '_getVersionLog'],
+    ['projectVersion/delete', 'ProjectVersion', 'delete'],
+    // ProjectTemplate
+    ['projectTemplate/index', 'ProjectTemplate', 'index'],
+    ['projectTemplate/save', 'ProjectTemplate', 'save'],
+    ['projectTemplate/edit', 'ProjectTemplate', 'edit'],
+    ['projectTemplate/delete', 'ProjectTemplate', 'delete'],
+    ['projectTemplate/uploadCover', 'ProjectTemplate', 'uploadCover'],
+    // TaskStagesTemplate
+    ['taskStagesTemplate/index', 'TaskStagesTemplate', 'index'],
+    ['taskStagesTemplate/save', 'TaskStagesTemplate', 'save'],
+    ['taskStagesTemplate/edit', 'TaskStagesTemplate', 'edit'],
+    ['taskStagesTemplate/delete', 'TaskStagesTemplate', 'delete'],
+    // TaskWorkflow
+    ['taskWorkflow/index', 'TaskWorkflow', 'index'],
+    ['taskWorkflow/_getTaskWorkflowRules', 'TaskWorkflow', '_getTaskWorkflowRules'],
+    ['taskWorkflow/save', 'TaskWorkflow', 'save'],
+    ['taskWorkflow/edit', 'TaskWorkflow', 'edit'],
+    ['taskWorkflow/delete', 'TaskWorkflow', 'delete'],
+    // ProjectInfo
+    ['projectInfo/index', 'ProjectInfo', 'index'],
+    ['projectInfo/save', 'ProjectInfo', 'save'],
+    ['projectInfo/edit', 'ProjectInfo', 'edit'],
+    ['projectInfo/delete', 'ProjectInfo', 'delete'],
+    // SourceLink
+    ['sourceLink/delete', 'SourceLink', 'delete'],
 ];
 
 Route::group('project', function () use ($ns, $routes) {
