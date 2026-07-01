@@ -122,6 +122,10 @@ class NodeService
         }
         $ignore = ['index', 'api', 'project/login', 'project/register', 'project/getCaptcha'];
         $path = env('app_path');
+        if (!$path) {
+            $root = app()->getRootPath();
+            $path = is_dir($root . 'app/project/controller') ? $root . 'app/' : $root . 'application/';
+        }
         if ($module) {
             $path .= '/' . $module;
         }

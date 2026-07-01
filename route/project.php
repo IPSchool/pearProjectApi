@@ -157,6 +157,43 @@ $routes = [
     ['taskTag/delete', 'TaskTag', 'delete'],
     // ProjectCollect
     ['projectCollect/collect', 'ProjectCollect', 'collect'],
+    // Auth
+    ['auth/index', 'Auth', 'index'],
+    ['auth/apply', 'Auth', 'apply'],
+    ['auth/add', 'Auth', 'add'],
+    ['auth/edit', 'Auth', 'edit'],
+    ['auth/del', 'Auth', 'del'],
+    ['auth/forbid', 'Auth', 'forbid'],
+    ['auth/resume', 'Auth', 'resume'],
+    ['auth/setDefault', 'Auth', 'setDefault'],
+    // Menu
+    ['menu/menu', 'Menu', 'menu'],
+    ['menu/menuAdd', 'Menu', 'menuAdd'],
+    ['menu/menuEdit', 'Menu', 'menuEdit'],
+    ['menu/menuForbid', 'Menu', 'menuForbid'],
+    ['menu/menuResume', 'Menu', 'menuResume'],
+    ['menu/menuDel', 'Menu', 'menuDel'],
+    // Node
+    ['node/index', 'Node', 'index'],
+    ['node/allList', 'Node', 'allList'],
+    ['node/save', 'Node', 'save'],
+    ['node/clear', 'Node', 'clear'],
+    // Events
+    ['events/index', 'Events', 'index'],
+    ['events/myList', 'Events', 'myList'],
+    ['events/confirmList', 'Events', 'confirmList'],
+    ['events/save', 'Events', 'save'],
+    ['events/edit', 'Events', 'edit'],
+    ['events/read', 'Events', 'read'],
+    ['events/confirmJoin', 'Events', 'confirmJoin'],
+    ['events/removeMember', 'Events', 'removeMember'],
+    ['events/inviteMember', 'Events', 'inviteMember'],
+    ['events/getEventsListByCalendar', 'Events', 'getEventsListByCalendar'],
+    ['events/_getEventsLog', 'Events', '_getEventsLog'],
+    ['events/delete', 'Events', 'delete'],
+    // InviteLink
+    ['inviteLink/save', 'InviteLink', 'save'],
+    ['inviteLink/_read', 'InviteLink', '_read'],
 ];
 
 Route::group('project', function () use ($ns, $routes) {

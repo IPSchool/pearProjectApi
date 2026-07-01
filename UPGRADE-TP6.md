@@ -78,6 +78,17 @@ cd ../.. && tests/jira/smoke/run.sh
 
 **下一批**：`Auth`、`Menu`、`Node`、`Events` 等。
 
+## Phase 3 Batch 5（Legacy project — Auth / Menu / Node / Events）
+
+| 项 | 说明 |
+|----|------|
+| 控制器 | `Auth`、`Menu`、`Node`、`Events`、`InviteLink` |
+| 路由 | `route/project.php` 扩展 35 端点 |
+| TP6 修复 | `request_only()`；`Db` facade；`EventsMember::select()` 替代 `::all()`；`Auth::_apply_filter` PHP 8 参数顺序；`NodeService` 扫描 `app/project/controller` |
+| 验收 | `POST /project/auth/index`、`/project/menu/menu`、`/project/node/index`、`/project/events/index` 返回 200 |
+
+**下一批**：`ProjectVersion`、`ProjectFeatures`、`TaskWorkflow`、`ProjectTemplate` 等。
+
 ## HistoryV / Gate A
 
 仍在 **HistoryV 分支 + TP5 + PHP 7.4**，本分支不保证 Legacy Web API 可用。
