@@ -1,14 +1,3 @@
 <?php
-
-/**
- * 模块路由及配置检测并加载
- * @include module/init.php
- */
-foreach (scandir(env('app_path')) as $dir) {
-    if ($dir[0] !== '.') {
-        $filename = realpath(env('app_path') . "{$dir}/init.php");
-        $filename && file_exists($filename) && include($filename);
-    }
-}
-
+// Gate B 分支：Jira 路由见 route/jira.php；legacy 模块 init 扫描已禁用
 return [];

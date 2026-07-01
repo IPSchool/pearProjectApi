@@ -3,7 +3,7 @@
 namespace app\common\Model;
 
 use service\FileService;
-use think\Db;
+use think\facade\Db;
 use think\facade\Hook;
 use think\File as thinkFile;
 

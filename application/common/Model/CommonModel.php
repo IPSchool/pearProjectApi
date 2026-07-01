@@ -4,7 +4,7 @@ namespace app\common\Model;
 
 use service\FileService;
 use service\ToolsService;
-use think\Db;
+use think\facade\Db;
 use think\facade\Request;
 use think\File;
 use think\Model;

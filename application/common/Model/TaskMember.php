@@ -3,7 +3,7 @@
 namespace app\common\Model;
 
 
-use think\Db;
+use think\facade\Db;
 
 /**
  * 任务成员

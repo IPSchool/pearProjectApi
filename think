@@ -1,11 +1,10 @@
 #!/usr/bin/env php
 <?php
-
 namespace think;
 
-// 加载基础文件
-require __DIR__ . '/thinkphp/base.php';
+require __DIR__ . '/vendor/autoload.php';
 
-// 执行应用
-Container::get('app', [__DIR__ . '/application/'])->initialize();
-Console::init();
+require_once __DIR__ . '/application/common-gateb.php';
+
+$console = (new App())->console;
+$console->run();

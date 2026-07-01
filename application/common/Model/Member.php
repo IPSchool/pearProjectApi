@@ -7,7 +7,7 @@ use PDOStatement;
 use service\JwtService;
 use service\NodeService;
 use service\RandomService;
-use think\Db;
+use think\facade\Db;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\ModelNotFoundException;
 use think\exception\DbException;

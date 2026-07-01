@@ -3,14 +3,11 @@
 namespace app\common\Model;
 
 use Exception;
-use function GuzzleHttp\Promise\task;
 use service\DateService;
 use service\RandomService;
-use think\Db;
-use think\db\exception\DataNotFoundException;
+use think\facade\Db;
 use think\db\exception\ModelNotFoundException;
 use think\exception\DbException;
-use think\facade\Hook;
 
 /**
  * 任务
@@ -326,7 +323,9 @@ class Task extends CommonModel
             Db::rollback();
             return error(9, $e->getMessage());
         }
-        return $this->read($result['code']);
+        return self::where(['code' => $result['code']])
+            ->field('id,code,project_code,name,id_num')
+            ->find();
     }
 
     public function taskDone($taskCode, $done)
@@ -919,8 +918,6 @@ class Task extends CommonModel
      */
     public static function taskHook($memberCode, $taskCode, $type = 'create', $toMemberCode = '', $isComment = 0, $remark = '', $content = '', $fileCode = '', $data = [], $tag = 'task')
     {
-        $data = ['memberCode' => $memberCode, 'taskCode' => $taskCode, 'remark' => $remark, 'type' => $type, 'content' => $content, 'isComment' => $isComment, 'toMemberCode' => $toMemberCode, 'fileCode' => $fileCode, 'data' => $data, 'tag' => $tag];
-        Hook::listen($tag, $data);
-
+        // TP6 已移除 Hook 行为；Gate B Jira API 不依赖任务钩子
     }
 }

@@ -6,17 +6,14 @@
 namespace think;
 
 $rootPath = realpath(__DIR__ . '/../..') . DIRECTORY_SEPARATOR;
-// CLI 脚本在 docker/jira/ 下，修正 ThinkPHP Loader 根目录探测
-if (PHP_SAPI === 'cli') {
-    $_SERVER['argv'][0] = $rootPath . 'think';
-    $_SERVER['SCRIPT_FILENAME'] = $rootPath . 'think';
-}
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
-ini_set('display_errors', '0');
-require $rootPath . 'thinkphp/base.php';
-Loader::addAutoLoadDir($rootPath . 'extend');
+ini_set('display_errors', '1');
 
-Container::get('app', [$rootPath . 'application/'])->initialize();
+require $rootPath . 'vendor/autoload.php';
+require_once $rootPath . 'application/common-gateb.php';
+
+$app = new App();
+$app->initialize();
 
 use app\common\Model\JiraApiToken;
 use app\common\Model\Member;
@@ -26,7 +23,7 @@ use app\common\Model\Project;
 use app\common\Model\ProjectMember;
 use app\common\Model\SystemConfig;
 use app\common\Model\TaskStages;
-use think\Db;
+use think\facade\Db;
 
 $email = config('jira.gate_b_email');
 $projectKey = config('jira.default_project_key');
@@ -72,8 +69,8 @@ if (!$orgCode) {
 }
 
 $account = MemberAccount::where([
-    'member_code'        => $member['code'],
-    'organization_code'  => $orgCode,
+    'member_code'       => $member['code'],
+    'organization_code' => $orgCode,
 ])->find();
 if (!$account) {
     MemberAccount::inviteMember($member['code'], $orgCode);

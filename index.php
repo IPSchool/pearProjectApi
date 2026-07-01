@@ -1,11 +1,19 @@
 <?php
-
+// +----------------------------------------------------------------------
+// | ThinkPHP 6 入口（upgrade/tp6 — Gate B Jira API）
+// +----------------------------------------------------------------------
 namespace think;
-// 加载基础文件
-require __DIR__ . '/thinkphp/base.php';
 
-// think文件检查，防止TP目录计算异常
-file_exists('think') || touch('think');
+require __DIR__ . '/vendor/autoload.php';
 
-// 执行应用并响应
-Container::get('app', [__DIR__ . '/application/'])->run()->send();
+require_once __DIR__ . '/application/common-gateb.php';
+
+file_exists(__DIR__ . '/think') || touch(__DIR__ . '/think');
+
+$http = (new App())->http;
+
+$response = $http->run();
+
+$response->send();
+
+$http->end($response);
