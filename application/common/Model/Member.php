@@ -40,6 +40,9 @@ class Member extends CommonModel
         }
 
         $organizationList = self::getOrgList($member['code'], true);
+        if (!$list) {
+            throw new Exception('该账号尚未加入任何组织', 201);
+        }
         if ($list) {
             foreach ($list as &$item) {
                 $departments = [];

@@ -11,13 +11,18 @@ use Firebase\JWT\JWT;
  */
 class JwtService
 {
+    private static function jwtConfig(): array
+    {
+        return config('jwt') ?: [];
+    }
+
     /**
      * 公共配置
      * @return array
      */
     public static function getCommonConfig()
     {
-        $jwtConfig = config('jwt.');
+        $jwtConfig = self::jwtConfig();
         $time = time(); //当前时间
         $token = array(
             "iss" => $jwtConfig['iss'],
@@ -51,7 +56,7 @@ class JwtService
     public static function getAccessToken($data)
     {
         $accessToken = self::getCommonConfig();
-        $jwtConfig = config('jwt.');
+        $jwtConfig = self::jwtConfig();
         $key = $jwtConfig['key'];
         $time = time();
         $accessToken['data'] = $data;
@@ -68,7 +73,7 @@ class JwtService
     public static function getRefreshToken($data)
     {
         $refreshToken = self::getCommonConfig();
-        $jwtConfig = config('jwt.');
+        $jwtConfig = self::jwtConfig();
         $key = $jwtConfig['key'];
         $time = time();
         $refreshToken['data'] = $data;
@@ -99,7 +104,7 @@ class JwtService
      */
     public static function decodeToken($token)
     {
-        $jwtConfig = config('jwt.');
+        $jwtConfig = self::jwtConfig();
 //        JWT::$leeway = 60; //当前时间减去60，把时间留点余地
         try {
             $decoded = JWT::decode($token, $jwtConfig['key'], array($jwtConfig['alg']));//解密方式，这里要和签发的时候对应

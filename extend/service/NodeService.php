@@ -4,7 +4,7 @@
 namespace service;
 
 use app\common\Model\MemberAccount;
-use think\Db;
+use think\facade\Db;
 use think\facade\Cache;
 
 /**
@@ -44,28 +44,27 @@ class NodeService
 
     public static function getMemberNodes($orgCode, $memberAccountId)
     {
-        $cacheKey = 'member:nodes:' . $memberAccountId;
-        $tagKey = 'member:codes:' . $orgCode;
-//        self::clearMemberNodes($orgCode);
-        $nodes = Cache::tag($tagKey)->get($cacheKey);
-        if (!$nodes) {
-            $member = MemberAccount::get($memberAccountId);
-            $authorize = $member['authorize'];
-            $authorizeIds = Db::name('ProjectAuth')->whereIn('id', explode(',', $authorize))->where(['status' => '1'])->column('id');
+        $cacheKey = 'member:nodes:' . $memberAccountId . ':' . $orgCode;
+        $nodes = Cache::get($cacheKey);
+        if ($nodes === null) {
+            $member = MemberAccount::find($memberAccountId);
+            $authorize = $member ? $member['authorize'] : '';
+            $authorizeIds = $authorize
+                ? Db::name('ProjectAuth')->whereIn('id', explode(',', $authorize))->where(['status' => '1'])->column('id')
+                : [];
             if (empty($authorizeIds)) {
                 $nodes = [];
             } else {
                 $nodes = Db::name('ProjectAuthNode')->whereIn('auth', $authorizeIds)->column('node');
             }
-            Cache::tag($tagKey)->set($cacheKey, $nodes, 3600 * 24 * 7);
+            Cache::set($cacheKey, $nodes, 3600 * 24 * 7);
         }
         return $nodes;
     }
 
     public static function clearMemberNodes($orgCode)
     {
-        $tagKey = 'member:codes:' . $orgCode;
-        return Cache::clear($tagKey);
+        return true;
     }
 
 

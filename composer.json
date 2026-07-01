@@ -3,15 +3,17 @@
   "description": "task collaboration — ThinkPHP 6 upgrade track (Gate B Jira API)",
   "homepage": "https://home.vilson.xyz",
   "license": "MIT",
-  "require": {
+    "require": {
     "php": ">=8.0",
     "topthink/framework": "^6.1.0",
-    "topthink/think-orm": "^2.0"
+    "topthink/think-orm": "^2.0",
+    "firebase/php-jwt": "^5.5"
   },
   "autoload": {
     "psr-4": {
       "app\\": "app/",
-      "app\\common\\Model\\": "application/common/Model/"
+      "app\\common\\Model\\": "application/common/Model/",
+      "app\\project\\": "app/project/"
     },
     "psr-0": {
       "": "extend/"

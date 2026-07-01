@@ -34,6 +34,19 @@ cd ../.. && tests/jira/smoke/run.sh
 
 **结果**：B-α 13/13、B-β 11/11 全绿（PHP 8.2 + ThinkPHP 6.1.5）。
 
+## Phase 3 Batch 1（Legacy project — Login + Index）
+
+| 项 | 说明 |
+|----|------|
+| 控制器 | `app/project/controller/Login.php`、`Index.php` |
+| 中间件 | `app/project/middleware/Auth.php`、`ProjectAuth.php` |
+| 路由 | `route/project.php`（`Class@method` 字符串） |
+| Docker | `nginx.conf` + compose 挂载 `/project/` |
+| 依赖 | `firebase/php-jwt` |
+| 验收 | `POST /project/login/index` 返回 `tokenList`（Gate A HV-A02 路径） |
+
+**下一批**：`Project`、`Task` 等核心业务控制器。
+
 ## HistoryV / Gate A
 
 仍在 **HistoryV 分支 + TP5 + PHP 7.4**，本分支不保证 Legacy Web API 可用。

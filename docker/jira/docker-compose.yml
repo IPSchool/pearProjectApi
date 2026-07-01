@@ -37,6 +37,7 @@ services:
     volumes:
       - ../../:/app
       - ./.env.docker:/docker-env/.env.docker:ro
+      - ./nginx.conf:/etc/nginx/sites-enabled/default:ro
     environment:
       PEAR_DB_HOST: mysql
       PEAR_DB_PORT: "3306"
