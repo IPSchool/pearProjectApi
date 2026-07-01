@@ -241,7 +241,8 @@ class FileService
     {
         switch (empty($storage) ? sysconf('storage_type') : $storage) {
             case 'local':
-                return file_exists(env('root_path') . $filename);
+                $root = function_exists('gateb_root_path') ? gateb_root_path() : rtrim((string) env('root_path'), '/\\') . DIRECTORY_SEPARATOR;
+                return file_exists($root . ltrim($filename, '/\\'));
             case 'qiniu':
                 $auth = new Auth(sysconf('storage_qiniu_access_key'), sysconf('storage_qiniu_secret_key'));
                 $bucketMgr = new BucketManager($auth);
@@ -308,10 +309,16 @@ class FileService
     public static function local($filename, $content, $append = false)
     {
         try {
-            $realfile = env('root_path') . $filename;
+            $root = function_exists('gateb_root_path') ? gateb_root_path() : rtrim((string) env('root_path'), '/\\') . DIRECTORY_SEPARATOR;
+            $realfile = $root . ltrim($filename, '/\\');
             !file_exists(dirname($realfile)) && mkdir(dirname($realfile), 0755, true);
             if (file_put_contents($realfile, $content, $append ? FILE_APPEND : 0)) {
-                $url = pathinfo(request()->baseFile(true), PATHINFO_DIRNAME) . '/' . $filename;
+                try {
+                    $base = pathinfo(request()->baseFile(true), PATHINFO_DIRNAME);
+                } catch (\Throwable $e) {
+                    $base = '';
+                }
+                $url = ($base && $base !== '.') ? rtrim($base, '/') . '/' . ltrim($filename, '/') : '/' . ltrim($filename, '/');
                 return ['file' => $realfile, 'hash' => md5_file($realfile), 'key' => "{$filename}", 'url' => $url];
             }
         } catch (Exception $err) {

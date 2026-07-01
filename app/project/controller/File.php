@@ -123,7 +123,7 @@ class File extends BasicApi
                 if ($site_url) {
                     $blob = file_get_contents($site_url);
 //                $blob .= file_get_contents($site_url);
-                    $fileList[] = env('root_path') . $fileUrl;
+                    $fileList[] = gateb_root_path() . ltrim($fileUrl, '/\\');
                     $result = FileService::$type($path2, $blob, true);
                 }
                 unset($blob);

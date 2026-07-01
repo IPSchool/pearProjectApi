@@ -102,7 +102,7 @@ class DepartmentMember extends CommonModel
     public function uploadFile(\think\File $file)
     {
         try {
-            $data = importExcel($file->getInfo()['tmp_name']);
+            $data = importExcel(gateb_upload_tmp_path($file));
         } catch (Exception $e) {
             return error('201', $e->getMessage());
         }
@@ -139,7 +139,7 @@ class DepartmentMember extends CommonModel
                         } catch (Exception $e) {
                             return error(1, $e->getMessage());
                         }
-                        $member = Member::get($result->id);
+                        $member = Member::find($result->id);
                         $memberAccount = MemberAccount::inviteMember($member['code'], $organizationCode, $position, $mobile, '', $description);
                         if (!isError($memberAccount)) {
                             $count++;

@@ -128,20 +128,29 @@ class CommonModel extends Model
         if (!$path_name) {
             $path_name = config('upload.base_path') . config('default');
         }
-        if (!$file->checkExt(strtolower(sysconf('storage_local_exts')))) {
-            \exception('文件上传类型受限', 1);
-        }
-        $path = $path_name;
-        $info = $file->move($path);
-        if ($info) {
-            $filename = str_replace('\\', '/', $path . '/' . $info->getSaveName());
-//            $image = \think\Image::open($info->getRealPath());
-//            $image->thumb($image->width() / 2, $image->height() / 2)->save($filename);//压缩
-            $site_url = FileService::getFileUrl($filename, 'local');
-            $fileInfo = FileService::save($filename, file_get_contents($site_url));
-            if ($fileInfo) {
-                return ['base_url' => $fileInfo['key'], 'url' => $fileInfo['url'], 'filename' => $file->getInfo('name')];
+        $exts = strtolower((string) sysconf('storage_local_exts'));
+        if (function_exists('gateb_upload_move')) {
+            if (!method_exists($file, 'checkExt') && !gateb_upload_allowed_ext((string) $file->extension(), $exts)) {
+                throw new \Exception('文件上传类型受限', 1);
+            } elseif (method_exists($file, 'checkExt') && !$file->checkExt($exts)) {
+                throw new \Exception('文件上传类型受限', 1);
             }
+            $filename = gateb_upload_move($file, $path_name);
+            $originalName = gateb_upload_original_name($file);
+        } else {
+            if (!$file->checkExt($exts)) {
+                throw new \Exception('文件上传类型受限', 1);
+            }
+            $info = $file->move($path_name);
+            $filename = str_replace('\\', '/', $path_name . '/' . $info->getSaveName());
+            $originalName = $file->getInfo('name');
+        }
+        $site_url = FileService::getFileUrl($filename, 'local');
+        $realPath = function_exists('gateb_root_path') ? gateb_root_path() . ltrim($filename, '/\\') : (env('root_path') . $filename);
+        $content = is_file($realPath) ? file_get_contents($realPath) : @file_get_contents($site_url);
+        $fileInfo = FileService::save($filename, $content ?: file_get_contents($site_url), 'local');
+        if ($fileInfo) {
+            return ['base_url' => $fileInfo['key'], 'url' => $fileInfo['url'], 'filename' => $originalName];
         }
         return false;
     }

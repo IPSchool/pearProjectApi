@@ -109,6 +109,18 @@ Legacy `project` 模块 **27 个控制器** 已全部迁至 TP6，`route/project
 - 文件上传（`file/uploadFiles`、`project/uploadCover` 等）依赖 `_uploadFile()` / OSS，尚未迁入 `common-gateb.php`
 - 任务 Excel 导入依赖 PhpSpreadsheet（Gate B composer 未包含）
 
+## Phase 4 — 上传与 Excel 导入（2026-07-01）
+
+| 项 | 说明 |
+|----|------|
+| 新增 | `application/gateb-upload.php`（`_uploadFile`、TP6 `UploadedFile` 兼容） |
+| 新增 | `application/gateb-import.php`（`importExcel`） |
+| 依赖 | `phpoffice/phpspreadsheet` ^1.29 |
+| 修复 | `CommonModel::_uploadImg` TP6 兼容；`FileService::local` 根路径与 URL；`gateb_root_path()` |
+| 验收 | `_uploadImg` 返回 `/static/upload/...` URL；Gate B smoke 仍全绿 |
+
+**仍待后续**（可选）：七牛/OSS 云存储 SDK 依赖（`storage_type` 非 local 时）。
+
 ## HistoryV / Gate A
 
 仍在 **HistoryV 分支 + TP5 + PHP 7.4** 维护基线；`upgrade/tp6` 分支 Legacy Web API 已可用，可与 Gate B 并行验收。

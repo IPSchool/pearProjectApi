@@ -167,7 +167,7 @@ class DepartmentMember extends BasicApi
      */
     public function _downloadTemplate()
     {
-        return download(env('root_path') . 'data/template/importMember.xlsx', '批量导入成员模板.xlsx');
+        return download(gateb_root_path() . 'data/template/importMember.xlsx', '批量导入成员模板.xlsx');
     }
 
     /**

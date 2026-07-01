@@ -114,3 +114,6 @@ function request_only($fields, $filter = '')
     }
     return \think\facade\Request::only($fields);
 }
+
+require_once __DIR__ . '/gateb-upload.php';
+require_once __DIR__ . '/gateb-import.php';

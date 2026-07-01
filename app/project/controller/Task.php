@@ -559,7 +559,7 @@ class Task extends BasicApi
      */
     public function _downloadTemplate()
     {
-        return download(env('root_path') . 'data/template/importTask.xlsx', '批量导入任务模板.xlsx');
+        return download(gateb_root_path() . 'data/template/importTask.xlsx', '批量导入任务模板.xlsx');
     }
 
     /**
