@@ -6,6 +6,13 @@
 namespace think;
 
 $rootPath = realpath(__DIR__ . '/../..') . DIRECTORY_SEPARATOR;
+// CLI 脚本在 docker/jira/ 下，修正 ThinkPHP Loader 根目录探测
+if (PHP_SAPI === 'cli') {
+    $_SERVER['argv'][0] = $rootPath . 'think';
+    $_SERVER['SCRIPT_FILENAME'] = $rootPath . 'think';
+}
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+ini_set('display_errors', '0');
 require $rootPath . 'thinkphp/base.php';
 Loader::addAutoLoadDir($rootPath . 'extend');
 
@@ -30,7 +37,11 @@ echo "[GateB] fixture-init: email={$email}, project={$projectKey}\n";
 $migration = $rootPath . 'data/2.9.0/2.8.17-2.9.0-jira.sql';
 if (is_file($migration)) {
     $sql = file_get_contents($migration);
-    Db::execute($sql);
+    foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
+        if ($statement !== '') {
+            Db::execute($statement);
+        }
+    }
     echo "[GateB] Applied jira schema migration\n";
 }
 

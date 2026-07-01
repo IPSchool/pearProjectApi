@@ -464,10 +464,11 @@ class Container implements ArrayAccess, IteratorAggregate, Countable
         foreach ($params as $param) {
             $name      = $param->getName();
             $lowerName = Loader::parseName($name);
-            $class     = $param->getClass();
+            $paramType = $param->getType();
+            $className = ($paramType && !$paramType->isBuiltin()) ? $paramType->getName() : null;
 
-            if ($class) {
-                $args[] = $this->getObjectParam($class->getName(), $vars);
+            if ($className) {
+                $args[] = $this->getObjectParam($className, $vars);
             } elseif (1 == $type && !empty($vars)) {
                 $args[] = array_shift($vars);
             } elseif (0 == $type && isset($vars[$name])) {
@@ -526,33 +527,39 @@ class Container implements ArrayAccess, IteratorAggregate, Countable
         $this->delete($name);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetExists($key)
     {
         return $this->__isset($key);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetGet($key)
     {
         return $this->__get($key);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetSet($key, $value)
     {
         $this->__set($key, $value);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetUnset($key)
     {
         $this->__unset($key);
     }
 
     //Countable
+    #[\ReturnTypeWillChange]
     public function count()
     {
         return count($this->instances);
     }
 
     //IteratorAggregate
+    #[\ReturnTypeWillChange]
     public function getIterator()
     {
         return new ArrayIterator($this->instances);

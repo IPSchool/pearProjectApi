@@ -68,6 +68,11 @@ class Error
      */
     public static function appError($errno, $errstr, $errfile = '', $errline = 0)
     {
+        // PHP 8.1+：TP 5.1 核心 ArrayAccess/Countable 签名未对齐，勿将 E_DEPRECATED 升级为异常
+        if ($errno === E_DEPRECATED || $errno === E_USER_DEPRECATED) {
+            return false;
+        }
+
         $exception = new ErrorException($errno, $errstr, $errfile, $errline);
         if (error_reporting() & $errno) {
             // 将错误信息托管至 think\exception\ErrorException

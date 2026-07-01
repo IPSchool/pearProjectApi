@@ -1,10 +1,8 @@
 FROM docker.m.daocloud.io/library/php:8.2-fpm
 
-RUN cp /etc/apt/sources.list /etc/apt/sources.list.bak \
-  && echo "deb http://mirrors.aliyun.com/debian bullseye main" > /etc/apt/sources.list \
-  && apt-get update
-
-RUN apt-get install -y --no-install-recommends \
+# 使用基础镜像自带的 apt 源（PHP 8.2 为 Debian Bookworm+，勿强行换 bullseye/bookworm 镜像以免依赖冲突）
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
     nginx \
     libwebp-dev libjpeg-dev libpng-dev libfreetype6-dev libjpeg62-turbo-dev \
     libzip-dev wget git unzip \
@@ -19,6 +17,7 @@ RUN wget -q https://mirrors.aliyun.com/composer/composer.phar -O /usr/local/bin/
   && composer config -g repo.packagist composer https://mirrors.aliyun.com/composer/
 
 COPY jira/nginx.conf /etc/nginx/sites-enabled/default
+COPY jira/php-gateb.ini /usr/local/etc/php/conf.d/99-gateb.ini
 COPY jira/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

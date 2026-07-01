@@ -1788,7 +1788,7 @@ class Request
             $this->host = $this->server('HTTP_X_REAL_HOST') ?: $this->server('HTTP_HOST');
         }
 
-        return true === $strict && strpos($this->host, ':') ? strstr($this->host, ':', true) : $this->host;
+        return true === $strict && $this->host && strpos($this->host, ':') ? strstr($this->host, ':', true) : $this->host;
     }
 
     /**
