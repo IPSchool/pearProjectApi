@@ -100,6 +100,30 @@ $routes = [
     ['taskMember/searchInviteMember', 'TaskMember', 'searchInviteMember'],
     ['taskMember/inviteMember', 'TaskMember', 'inviteMember'],
     ['taskMember/inviteMemberBatch', 'TaskMember', 'inviteMemberBatch'],
+    // File
+    ['file/index', 'File', 'index'],
+    ['file/read', 'File', 'read'],
+    ['file/uploadFiles', 'File', 'uploadFiles'],
+    ['file/edit', 'File', 'edit'],
+    ['file/recycle', 'File', 'recycle'],
+    ['file/recovery', 'File', 'recovery'],
+    ['file/delete', 'File', 'delete'],
+    // Notify
+    ['notify/index', 'Notify', 'index'],
+    ['notify/noReads', 'Notify', 'noReads'],
+    ['notify/setReadied', 'Notify', 'setReadied'],
+    ['notify/_clearAll', 'Notify', '_clearAll'],
+    ['notify/batchDel', 'Notify', 'batchDel'],
+    ['notify/read', 'Notify', 'read'],
+    ['notify/delete', 'Notify', 'delete'],
+    // Organization
+    ['organization/_getOrgList', 'Organization', '_getOrgList'],
+    ['organization/index', 'Organization', 'index'],
+    ['organization/save', 'Organization', 'save'],
+    ['organization/read', 'Organization', 'read'],
+    ['organization/edit', 'Organization', 'edit'],
+    ['organization/delete', 'Organization', 'delete'],
+    ['organization/_quitOrganization', 'Organization', '_quitOrganization'],
 ];
 
 Route::group('project', function () use ($ns, $routes) {

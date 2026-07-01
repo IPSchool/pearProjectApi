@@ -56,6 +56,17 @@ cd ../.. && tests/jira/smoke/run.sh
 
 **下一批**：`File`、`Notify`、`Organization` 等。
 
+## Phase 3 Batch 3（Legacy project — File / Notify / Organization）
+
+| 项 | 说明 |
+|----|------|
+| 控制器 | `File`、`Notify`、`Organization` |
+| 路由 | `route/project.php` 扩展 21 端点 |
+| TP6 修复 | `request_only()`；`Model::find` 替代 `::get`；Organization `read` 按 `code` 查询 |
+| 验收 | `POST /project/organization/index`、`/project/notify/index`、`/project/notify/noReads` 返回 200 |
+
+**下一批**：`Account`、`Department`、`TaskTag` 等。
+
 ## HistoryV / Gate A
 
 仍在 **HistoryV 分支 + TP5 + PHP 7.4**，本分支不保证 Legacy Web API 可用。
