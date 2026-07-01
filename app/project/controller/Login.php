@@ -121,7 +121,7 @@ class Login extends BasicApi
 
     public function register()
     {
-        $data = Request::only('email,name,password,password2,mobile,captcha');
+        $data = request_only('email,name,password,password2,mobile,captcha');
         $validate = Validate::make([
             'email' => 'require',
             'name' => 'require',
@@ -353,7 +353,7 @@ class Login extends BasicApi
      */
     public function _resetPasswordByMail()
     {
-        $data = Request::only('email,password,password2,mobile,captcha');
+        $data = request_only('email,password,password2,mobile,captcha');
         $validate = Validate::make([
             'email' => 'require',
             'password' => 'require|min:6',

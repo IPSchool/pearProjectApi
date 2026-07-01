@@ -100,3 +100,17 @@ function decode($string)
     }
     return @iconv('gbk', 'utf-8', $chars);
 }
+
+/**
+ * TP5 兼容：Request::only 接受逗号分隔字段名（TP6 仅接受 array）
+ */
+function request_only($fields, $filter = '')
+{
+    if (is_string($fields)) {
+        $fields = array_map('trim', explode(',', $fields));
+    }
+    if ($filter !== '') {
+        return \think\facade\Request::only($fields, 'param', $filter);
+    }
+    return \think\facade\Request::only($fields);
+}

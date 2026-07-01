@@ -45,7 +45,16 @@ cd ../.. && tests/jira/smoke/run.sh
 | 依赖 | `firebase/php-jwt` |
 | 验收 | `POST /project/login/index` 返回 `tokenList`（Gate A HV-A02 路径） |
 
-**下一批**：`Project`、`Task` 等核心业务控制器。
+## Phase 3 Batch 2（Legacy project — Project / Task 核心）
+
+| 项 | 说明 |
+|----|------|
+| 控制器 | `Project`、`ProjectMember`、`Task`、`TaskStages`、`TaskMember` |
+| 路由 | `route/project.php` 扩展 ~70 端点 |
+| TP6 修复 | `Db` facade；`Task::find` 替代 `::get`；`request_only()` 兼容 `Request::only` 逗号字符串 |
+| 验收 | `POST /project/project/index`、`/project/task/selfList`、`/project/taskStages/index` 返回 200 |
+
+**下一批**：`File`、`Notify`、`Organization` 等。
 
 ## HistoryV / Gate A
 

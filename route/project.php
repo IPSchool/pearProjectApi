@@ -1,6 +1,6 @@
 <?php
 // +----------------------------------------------------------------------
-// | Legacy project 模块路由 — Phase 3 Batch 1: Login + Index
+// | Legacy project 模块路由 — Phase 3 Batch 1–2
 // +----------------------------------------------------------------------
 use app\project\middleware\Auth;
 use app\project\middleware\ProjectAuth;
@@ -32,6 +32,74 @@ $routes = [
     ['index/editPassword', 'Index', 'editPassword'],
     ['index/uploadImg', 'Index', 'uploadImg'],
     ['index/uploadAvatar', 'Index', 'uploadAvatar'],
+    // Project
+    ['project/index', 'Project', 'index'],
+    ['project/analysis', 'Project', 'analysis'],
+    ['project/selfList', 'Project', 'selfList'],
+    ['project/save', 'Project', 'save'],
+    ['project/read', 'Project', 'read'],
+    ['project/edit', 'Project', 'edit'],
+    ['project/getLogBySelfProject', 'Project', 'getLogBySelfProject'],
+    ['project/_setDayilyProejctReport', 'Project', '_setDayilyProejctReport'],
+    ['project/_getProjectReport', 'Project', '_getProjectReport'],
+    ['project/_projectStats', 'Project', '_projectStats'],
+    ['project/uploadCover', 'Project', 'uploadCover'],
+    ['project/recycle', 'Project', 'recycle'],
+    ['project/recovery', 'Project', 'recovery'],
+    ['project/archive', 'Project', 'archive'],
+    ['project/recoveryArchive', 'Project', 'recoveryArchive'],
+    ['project/quit', 'Project', 'quit'],
+    // ProjectMember
+    ['projectMember/index', 'ProjectMember', 'index'],
+    ['projectMember/_listForInvite', 'ProjectMember', '_listForInvite'],
+    ['projectMember/searchInviteMember', 'ProjectMember', 'searchInviteMember'],
+    ['projectMember/_joinByInviteLink', 'ProjectMember', '_joinByInviteLink'],
+    ['projectMember/inviteMember', 'ProjectMember', 'inviteMember'],
+    ['projectMember/removeMember', 'ProjectMember', 'removeMember'],
+    // Task
+    ['task/index', 'Task', 'index'],
+    ['task/dateTotalForProject', 'Task', 'dateTotalForProject'],
+    ['task/selfList', 'Task', 'selfList'],
+    ['task/taskSources', 'Task', 'taskSources'],
+    ['task/getListByTaskTag', 'Task', 'getListByTaskTag'],
+    ['task/read', 'Task', 'read'],
+    ['task/save', 'Task', 'save'],
+    ['task/taskDone', 'Task', 'taskDone'],
+    ['task/assignTask', 'Task', 'assignTask'],
+    ['task/batchAssignTask', 'Task', 'batchAssignTask'],
+    ['task/sort', 'Task', 'sort'],
+    ['task/createComment', 'Task', 'createComment'],
+    ['task/edit', 'Task', 'edit'],
+    ['task/setPrivate', 'Task', 'setPrivate'],
+    ['task/like', 'Task', 'like'],
+    ['task/taskToTags', 'Task', 'taskToTags'],
+    ['task/setTag', 'Task', 'setTag'],
+    ['task/star', 'Task', 'star'],
+    ['task/taskLog', 'Task', 'taskLog'],
+    ['task/_taskWorkTimeList', 'Task', '_taskWorkTimeList'],
+    ['task/saveTaskWorkTime', 'Task', 'saveTaskWorkTime'],
+    ['task/editTaskWorkTime', 'Task', 'editTaskWorkTime'],
+    ['task/delTaskWorkTime', 'Task', 'delTaskWorkTime'],
+    ['task/_downloadTemplate', 'Task', '_downloadTemplate'],
+    ['task/uploadFile', 'Task', 'uploadFile'],
+    ['task/recycleBatch', 'Task', 'recycleBatch'],
+    ['task/recycle', 'Task', 'recycle'],
+    ['task/recovery', 'Task', 'recovery'],
+    ['task/delete', 'Task', 'delete'],
+    // TaskStages
+    ['taskStages/index', 'TaskStages', 'index'],
+    ['taskStages/_getAll', 'TaskStages', '_getAll'],
+    ['taskStages/tasks', 'TaskStages', 'tasks'],
+    ['taskStages/taskTree', 'TaskStages', 'taskTree'],
+    ['taskStages/sort', 'TaskStages', 'sort'],
+    ['taskStages/save', 'TaskStages', 'save'],
+    ['taskStages/edit', 'TaskStages', 'edit'],
+    ['taskStages/delete', 'TaskStages', 'delete'],
+    // TaskMember
+    ['taskMember/index', 'TaskMember', 'index'],
+    ['taskMember/searchInviteMember', 'TaskMember', 'searchInviteMember'],
+    ['taskMember/inviteMember', 'TaskMember', 'inviteMember'],
+    ['taskMember/inviteMemberBatch', 'TaskMember', 'inviteMemberBatch'],
 ];
 
 Route::group('project', function () use ($ns, $routes) {

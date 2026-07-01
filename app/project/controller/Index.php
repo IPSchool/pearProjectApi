@@ -123,7 +123,7 @@ class Index extends BasicApi
      */
     public function editPersonal()
     {
-        $params = Request::only('mobile,mail,idcard,name,realname,avatar,code');
+        $params = request_only('mobile,mail,idcard,name,realname,avatar,code');
         $memberModel = new Member();
         $result = $memberModel->_edit($params, ['code' => $params['code']]);
         if (isset($params['avatar'])) {
@@ -144,7 +144,7 @@ class Index extends BasicApi
     public function editPassword()
     {
         $memberModel = new Member();
-        $params = Request::only('password,newPassword,confirmPassword,id');
+        $params = request_only('password,newPassword,confirmPassword,id');
         $member = $memberModel->field('password')->get($params['id'])->toArray();
         if (strlen($params['password']) < 6 || strlen($params['newPassword']) < 6 || strlen($params['confirmPassword']) < 6) {
             $this->error("密码必须包含6个字符");
