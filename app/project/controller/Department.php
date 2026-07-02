@@ -65,7 +65,7 @@ class Department extends BasicApi
      */
     public function read(Request $request)
     {
-        $department = $this->model->where(['code' => $request::post('departmentCode')])->field('id', true)->find();
+        $department = $this->model->where(['code' => $request::post('departmentCode')])->withoutField('id')->find();
         if (!$department) {
             $this->notFound();
         }

@@ -67,7 +67,7 @@ class SourceLink extends CommonModel
         switch ($source['source_type']) {
             case 'file':
                 $source['title'] = '';
-                $sourceDetail = File::where(['code' => $source['source_code']])->field('id', true)->find();
+                $sourceDetail = File::where(['code' => $source['source_code']])->withoutField('id')->find();
                 if ($sourceDetail) {
                     $source['title'] = $sourceDetail['title'];
                     $project = Project::where(['code' => $sourceDetail['project_code']])->field('name')->find();

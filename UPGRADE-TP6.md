@@ -1,32 +1,51 @@
-# upgrade/tp6 分支说明
+# ThinkPHP 6 升级说明（master）
 
-> **ThinkPHP 6 升级试验轨道** — Gate B Jira API 与 Legacy `project` 模块（27 控制器 / ~198 路由）均已迁至 TP6。
+> **2026-07-02**：`upgrade/tp6` 已合并入 `master`。Gate B Jira API 与 Legacy `project` 模块（27 控制器 / ~198 路由）均在 TP6 运行。
 
-## 与 master 差异
+## 当前 master 栈
 
-| 项 | master (TP5.1) | upgrade/tp6 |
-|----|----------------|-------------|
-| 框架 | 内嵌 `thinkphp/` 5.1.37 | Composer `topthink/framework` ^6.1 |
-| PHP | 8.2（Docker Gate B） | 8.2 |
-| 入口 | `index.php` → TP5 Container | `index.php` → TP6 Http |
-| 公共函数 | `application/common.php` | `application/common-gateb.php`（无 PhpSpreadsheet 等 legacy 依赖） |
-| Jira 模块 | `application/jira/` | `app/jira/` |
-| 路由 | `application/jira/init.php` | `route/jira.php`（`Class@method` 字符串，勿用 `[Class, 'method']` 数组） |
-| Legacy project | `application/project/controller/` | `app/project/controller/`（27 个） + `route/project.php` |
-| Legacy 模型 | `application/common/Model/` | 暂保留，Composer PSR-4 映射 |
-| Composer 依赖 | 全量 legacy 包 | `topthink/framework` + `think-orm` + `firebase/php-jwt` |
+| 项 | 说明 |
+|----|------|
+| 框架 | Composer `topthink/framework` ^6.1 |
+| PHP | 8.0+（Docker Gate B/A：8.2） |
+| 入口 | `index.php` → TP6 Http |
+| 公共函数 | `application/common-gateb.php` |
+| Jira 模块 | `app/jira/` + `route/jira.php` |
+| Legacy project | `app/project/controller/` + `route/project.php` |
+| 模型 | `application/common/Model/`（PSR-4 映射） |
+| 存储 | local / qiniu / oss（`gateb_storage_type()`） |
+
+## 历史对照（合并前）
+
+| 项 | 旧 master (TP5.1) | 现 master (TP6) |
+|----|-------------------|-----------------|
+| 框架 | 内嵌 `thinkphp/` 5.1.37 | Composer TP6 |
+| Jira | `application/jira/init.php` | `route/jira.php` |
+| Legacy | `application/project/controller/` | `app/project/controller/` |
 
 ## TP6 迁移要点
 
 1. **路由**：`Route::get('x', [Foo::class, 'bar'])` 在 TP6.1 会触发 `strpos(array)` 500；改用 `'app\jira\controller\v3\Foo@bar'`。
 2. **Db**：模型与脚本统一 `think\facade\Db`。
 3. **表前缀**：`config/database.php` 增加顶层 `prefix`，兼容 `config('database.prefix')`。
-4. **Hook**：TP6 无 `think\facade\Hook`；Gate B 路径下 `Task::taskHook` 为空操作。
+4. **Hook**：TP6 无原生 Hook；Legacy 路径通过 `application/gateb-hook.php` 提供 no-op 兼容。
 5. **异常**：`app/ExceptionHandle.php` 对 `/rest/api/3/*` 与 `/project/*` 返回 JSON。
 6. **Request::only**：TP6 签名为 `only(array $name, $data, $filter)`；使用 `request_only()`（`common-gateb.php`）。
 7. **Model::get**：TP6 已移除；改用 `find()` / `where()->find()`。
+8. **field('id', true)**：TP6 改用 `withoutField('id')` 排除主键。
 
-## Gate B 验收（2026-07-01）
+## Gate A + Gate B 一键验收
+
+```bash
+cd docker/jira && docker compose up -d
+docker exec jira-app-1 composer install --no-interaction
+docker exec jira-app-1 php /app/docker/jira/fixture-init.php
+cd ../.. && tests/gate-a/run.sh   # Gate A 17/17 + Gate B smoke
+```
+
+**结果（2026-07-02）**：Gate A 17/17、B-α 13/13、B-β 11/11 全绿。
+
+## Gate B 验收（单独）
 
 ```bash
 cd docker/jira && docker compose build app && docker compose up -d
@@ -131,4 +150,4 @@ Legacy `project` 模块 **27 个控制器** 已全部迁至 TP6，`route/project
 
 ## HistoryV / Gate A
 
-仍在 **HistoryV 分支 + TP5 + PHP 7.4** 维护基线；`upgrade/tp6` 分支 Legacy Web API 已可用，可与 Gate B 并行验收。
+Gate A 脚本：`tests/gate-a/run.sh`（8090 Docker，账号 `123456` / md5 密码见 fixture）。HistoryV TP5 基线仍可在 `HistoryV` 分支 + `docker/historyv` 对照。

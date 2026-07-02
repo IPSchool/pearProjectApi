@@ -144,7 +144,7 @@ class ProjectVersion extends CommonModel
     public static function updateSchedule($versionCode)
     {
         $version = ProjectVersion::where(['code' => $versionCode])->find();
-        $taskList = Task::where(['version_code' => $versionCode, 'deleted' => 0])->field('id', true)->select();
+        $taskList = Task::where(['version_code' => $versionCode, 'deleted' => 0])->withoutField('id')->select();
         $doneTotal = 0;
         if ($taskList) {
             foreach ($taskList as $task) {

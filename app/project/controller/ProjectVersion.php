@@ -149,7 +149,7 @@ class ProjectVersion extends BasicApi
     public function read()
     {
         $code = Request::post('versionCode');
-        $version = $this->model->where(['code' => $code])->field('id', true)->find();
+        $version = $this->model->where(['code' => $code])->withoutField('id')->find();
         if ($version) {
             $feature = \app\common\Model\ProjectFeatures::where(['code' => $version['features_code']])->find();
             $feature && $version['featureName'] = $feature['name'];
@@ -167,7 +167,7 @@ class ProjectVersion extends BasicApi
     public function _getVersionTask()
     {
         $code = Request::post('versionCode');
-        $taskList = \app\common\Model\Task::where(['version_code' => $code, 'deleted' => 0])->order('id desc')->field('id', true)->select();
+        $taskList = \app\common\Model\Task::where(['version_code' => $code, 'deleted' => 0])->order('id desc')->withoutField('id')->select();
         if ($taskList) {
             foreach ($taskList as &$task) {
                 $task['executor'] = Member::where(['code' => $task['assign_to']])->field('name,avatar')->find();

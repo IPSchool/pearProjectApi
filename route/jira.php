@@ -10,6 +10,11 @@ if (!config('jira.enabled')) {
     return;
 }
 
+// jira-python / 部分客户端初始化（无认证）
+Route::get('rest/api/2/serverInfo', 'app\jira\controller\v2\ServerInfo@index');
+Route::get('rest/api/latest/serverInfo', 'app\jira\controller\v2\ServerInfo@index');
+Route::get('rest/api/3/serverInfo', 'app\jira\controller\v2\ServerInfo@index');
+
 $issueKeyPattern = ['issueIdOrKey' => '[A-Za-z][A-Za-z0-9_]*-\d+|\d+'];
 
 Route::group('rest/api/3', function () use ($issueKeyPattern) {

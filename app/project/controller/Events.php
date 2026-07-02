@@ -245,7 +245,7 @@ class Events extends BasicApi
     public function read()
     {
         $code = Request::post('eventsCode');
-        $events = $this->model->where(['code' => $code])->field('id', true)->find();
+        $events = $this->model->where(['code' => $code])->withoutField('id')->find();
         if ($events) {
             $events['memberList'] = [];
             $members = EventsMember::where(['events_code' => $events['code']])->select();

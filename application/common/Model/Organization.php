@@ -79,7 +79,7 @@ class Organization extends CommonModel
         if (!$code) {
             throw new \Exception('请选择组织', 1);
         }
-        $project = self::where(['code' => $code])->field('id', true)->find();
+        $project = self::where(['code' => $code])->withoutField('id')->find();
         if (!$project) {
             throw new \Exception('该组织不存在', 1);
         }
@@ -92,7 +92,7 @@ class Organization extends CommonModel
         if (!$orgCode) {
             return error(201, '请选择组织');
         }
-        $org = self::where(['code' => $orgCode])->field('id', true)->find();
+        $org = self::where(['code' => $orgCode])->withoutField('id')->find();
         if (!$org) {
             return error(202, '该组织不存在');
         }

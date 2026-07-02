@@ -66,19 +66,19 @@ class InviteLink extends CommonModel
         switch ($link['invite_type']) {
             case 'project':
                 $link['name'] = '';
-                $linkDetail = Project::where(['code' => $link['source_code']])->field('id', true)->find();
+                $linkDetail = Project::where(['code' => $link['source_code']])->withoutField('id')->find();
                 if ($linkDetail) {
                     $link['name'] = $linkDetail['name'];
                 }
                 break;
             case 'organization':
                 $link['name'] = '';
-                $linkDetail = Organization::where(['code' => $link['source_code']])->field('id', true)->find();
+                $linkDetail = Organization::where(['code' => $link['source_code']])->withoutField('id')->find();
                 if ($linkDetail) {
                     $link['name'] = $linkDetail['name'];
                 }
         }
-        $link['member'] = Member::where(['code' => $link['create_by']])->field('id', true)->find();
+        $link['member'] = Member::where(['code' => $link['create_by']])->withoutField('id')->find();
         $link['sourceDetail'] = $linkDetail;
         return $link;
     }

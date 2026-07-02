@@ -37,7 +37,7 @@ class Organization extends BasicApi
         $organizationList = [];
         if ($list) {
             foreach ($list as $item) {
-                $organization = $this->model->where(['code' => $item['organization_code']])->field('id', true)->find();
+                $organization = $this->model->where(['code' => $item['organization_code']])->withoutField('id')->find();
                 if ($organization) {
                     $organizationList[] = $organization;
                 }

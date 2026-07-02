@@ -21,7 +21,11 @@ def main() -> int:
     print("=== Gate B Layer 4: jira-python smoke ===")
     print(f"server: {BASE}")
     try:
-        client = JIRA(server=BASE, basic_auth=(EMAIL, TOKEN))
+        client = JIRA(
+            server=BASE,
+            basic_auth=(EMAIL, TOKEN),
+            options={"rest_api_version": "3"},
+        )
         user = client.myself()
         assert user.get("accountId") or getattr(user, "accountId", None), "missing accountId"
         print(f"✅ jira-python myself: {user.get('displayName', user)}")

@@ -80,7 +80,7 @@ class Account extends BasicApi
         if ($list['list']) {
             $organizaionCode = getCurrentOrganizationCode();
             foreach ($list['list'] as &$item) {
-                $memberInfo = Member::where(['code' => $item['member_code']])->field('id', true)->find();
+                $memberInfo = Member::where(['code' => $item['member_code']])->withoutField('id')->find();
                 if ($memberInfo) {
                     $item['avatar'] = $memberInfo['avatar'];
                 }
@@ -120,7 +120,7 @@ class Account extends BasicApi
                 $item['status'] = $member['status'];
                 $item['avatar'] = $member['avatar'];
                 if (!$item['avatar']) {
-                    $memberInfo = Member::where(['code' => $member['member_code']])->field('id', true)->find();
+                    $memberInfo = Member::where(['code' => $member['member_code']])->withoutField('id')->find();
                     if ($memberInfo) {
                         $item['avatar'] = $memberInfo['avatar'];
                     }
@@ -139,7 +139,7 @@ class Account extends BasicApi
         if (!$code) {
             $this->error("缺少参数");
         }
-        $memberAccount = $this->model->where(['code' => $code])->field('id', true)->find();
+        $memberAccount = $this->model->where(['code' => $code])->withoutField('id')->find();
         if ($memberAccount) {
             $departments = [];
             $departmentCodes = $memberAccount['department_code'];
