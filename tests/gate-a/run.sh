@@ -17,6 +17,10 @@ echo "========== Gate A Extended (HV-A18~A95) =========="
 python3 "$ROOT/tests/gate-a/test_gate_a_extended.py" || fail=1
 
 echo ""
+echo "========== Gate A Phase 2 (HV-A96+) =========="
+python3 "$ROOT/tests/gate-a/test_gate_a_phase2.py" || fail=1
+
+echo ""
 echo "========== Gate B (Jira) =========="
 bash "$ROOT/tests/jira/smoke/run.sh" || fail=1
 

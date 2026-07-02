@@ -18,9 +18,13 @@ class CORS
      */
     public function handle($request, \Closure $next)
     {
+        $path = ltrim($request->pathinfo(), '/');
+        if (in_array($path, ['docs', 'api/openapi.json'], true) || str_starts_with($path, 'docs/')) {
+            return $next($request);
+        }
 
-        $Origin = $request->header('Origin');
-        $Headers = $request->header('Access-Control-Request-Headers');
+        $Origin = $request->header('Origin') ?? '';
+        $Headers = $request->header('Access-Control-Request-Headers') ?? '';
         header('Access-Control-Allow-Origin: ' . $Origin);
         header('Access-Control-Allow-Headers: ' . $Headers);
         header('Access-Control-Allow-Credentials:true');

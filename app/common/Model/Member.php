@@ -234,7 +234,10 @@ class Member extends CommonModel
     public static function logout()
     {
         !empty($_SESSION) && $_SESSION = [];
-        [session_unset(), session_destroy()];
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_unset();
+            session_destroy();
+        }
         setCurrentMember(null);
         session('loginInfo', null);
     }

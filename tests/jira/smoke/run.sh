@@ -21,6 +21,7 @@ echo ""
 python3 "$DIR/smoke/test_b_alpha.py" || fail=1
 python3 "$DIR/smoke/test_b_beta.py" || fail=1
 python3 "$DIR/smoke/test_b_gamma.py" || fail=1
+python3 "$DIR/smoke/test_b_delta.py" || fail=1
 
 python3 "$DIR/smoke/test_jira_python.py" || fail=1
 python3 "$DIR/smoke/test_jira_python_extended.py" || fail=1

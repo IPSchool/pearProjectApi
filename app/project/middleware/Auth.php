@@ -54,21 +54,23 @@ class Auth
         $logined = false;
         $encodeData = '';
         if ($authorization) {
-            $accessToken = explode(' ', $authorization)[1];
-            $encodeData = JwtService::decodeToken($accessToken);
-            if (!isError($encodeData)) {
-                $member = Cache::get('member:info:' . $encodeData->data->code);
-                if ($member) {
-                    setCurrentMember($member);
-                    $logined = true;
+            $parts = explode(' ', trim($authorization), 2);
+            if (count($parts) === 2 && $parts[1] !== '') {
+                $accessToken = $parts[1];
+                $encodeData = JwtService::decodeToken($accessToken);
+                if (!isError($encodeData)) {
+                    $member = Cache::get('member:info:' . $encodeData->data->code);
+                    if ($member) {
+                        setCurrentMember($member);
+                        $logined = true;
+                    }
                 }
             }
         }
         // 登录状态检查
         if (!empty($access['is_login'])) {
-            if (isError($encodeData)) {
-                //TODO 启用refreshToken
-                if ($encodeData['errno'] == 3) {
+            if (!$authorization || isError($encodeData)) {
+                if (is_array($encodeData) && ($encodeData['errno'] ?? null) == 3) {
                     $msg = ['code' => 401, 'msg' => 'accessToken过期'];
                     return json($msg);
                 }
@@ -117,6 +119,13 @@ class Auth
     private function buildAuth($node)
     {
         $info = ProjectNode::cache(true, 30)->where(['node' => $node])->find();
+        if (!$info) {
+            return [
+                'is_menu'  => 0,
+                'is_auth'  => 0,
+                'is_login' => 1,
+            ];
+        }
         return [
             'is_menu' => intval(!empty($info['is_menu'])),
             'is_auth' => intval(!empty($info['is_auth'])),

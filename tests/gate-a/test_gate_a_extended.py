@@ -90,7 +90,8 @@ def test_login_and_index() -> None:
     res, _ = client.post("project/login/_checkLogin", {"account": client.account})
     check("HV-A19", "检查登录状态", client.ok(res))
 
-    check("HV-A20", "当前成员接口", isinstance(res, dict) and res.get("code") == 200)
+    res, _ = client.post("project/login/_currentMember", {})
+    check("HV-A20", "当前成员接口 _currentMember", client.ok(res))
 
     req = client.base + "/index/index/checkInstall"
     import urllib.request
