@@ -46,11 +46,13 @@ if [ ! -f data/install.lock ]; then
   echo "1" > data/install.lock
 fi
 
-chmod -R 777 runtime static/upload data 2>/dev/null || true
-
 if [ -x /app/docker/jira/init-jira-fixture.sh ]; then
   /app/docker/jira/init-jira-fixture.sh || true
 fi
+
+# Re-apply after init scripts: root may create runtime/log/* owned by root while php-fpm runs as www-data.
+chmod -R 777 runtime static/upload data 2>/dev/null || true
+chown -R www-data:www-data runtime static/upload data 2>/dev/null || true
 
 echo "[GateB] Starting php-fpm + nginx on :8090..."
 echo "[GateB] Jira API: http://127.0.0.1:8090/rest/api/3/"

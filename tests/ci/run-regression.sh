@@ -34,6 +34,7 @@ docker compose -f "${COMPOSE_FILE}" exec -T app bash -lc \
 echo "Initializing Jira fixture..."
 docker compose -f "${COMPOSE_FILE}" exec -T app php /app/docker/jira/fixture-init.php
 
+bash "${ROOT}/tests/ci/fix-runtime-perms.sh"
 bash "${ROOT}/tests/ci/preflight-login.sh"
 
 echo ""
