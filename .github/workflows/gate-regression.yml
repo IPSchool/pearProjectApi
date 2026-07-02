@@ -44,7 +44,7 @@ jobs:
         with:
           name: gate-regression-logs
           path: |
-            docker/runtime/log/**
+            runtime/log/**
           if-no-files-found: ignore
 
       - name: Tear down

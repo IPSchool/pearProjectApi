@@ -19,17 +19,22 @@ echo "ROOT: ${ROOT}"
 cd "${ROOT}"
 docker compose -f "${COMPOSE_FILE}" up -d --build
 
+bash "${ROOT}/tests/ci/wait-for-db-seed.sh"
 bash "${ROOT}/tests/ci/wait-for-ready.sh"
 
 echo "Ensuring composer dependencies..."
 docker compose -f "${COMPOSE_FILE}" exec -T app bash -lc \
-  'git config --global --add safe.directory /app \
+  'git config --global --add safe.directory "*" \
+   && export COMPOSER_ROOT_VERSION=dev-main \
    && composer config --no-plugins allow-plugins.topthink/think-installer true \
    && composer install --no-interaction --prefer-dist --no-dev \
-   && composer dump-autoload -o'
+   && composer dump-autoload -o \
+   && php -r "require \"vendor/autoload.php\"; if (!class_exists(\"Firebase\\\\JWT\\\\JWT\")) { fwrite(STDERR, \"missing firebase/php-jwt\n\"); exit(1); }"'
 
 echo "Initializing Jira fixture..."
 docker compose -f "${COMPOSE_FILE}" exec -T app php /app/docker/jira/fixture-init.php
+
+bash "${ROOT}/tests/ci/preflight-login.sh"
 
 echo ""
 bash "${ROOT}/tests/gate-a/run.sh"
