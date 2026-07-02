@@ -13,6 +13,9 @@
 | Jira 模块 | `app/jira/` + `route/jira.php` |
 | Legacy project | `app/project/controller/` + `route/project.php` |
 | 模型 | `app/common/Model/` |
+| 服务层 | `app/service/`（PSR-4 `service\`） |
+| 基类控制器 | `app/common/controller/BasicApi.php`（PSR-4 `controller\`） |
+| WebSocket | `app/common/Plugins/GateWayWorker/` |
 | 存储 | local / qiniu / oss（`gateb_storage_type()`） |
 
 ## 历史对照（合并前）
