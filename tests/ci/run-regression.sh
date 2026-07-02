@@ -23,7 +23,10 @@ bash "${ROOT}/tests/ci/wait-for-ready.sh"
 
 echo "Ensuring composer dependencies..."
 docker compose -f "${COMPOSE_FILE}" exec -T app bash -lc \
-  'composer config --no-plugins allow-plugins.topthink/think-installer true && composer install --no-interaction --prefer-dist --no-dev'
+  'git config --global --add safe.directory /app \
+   && composer config --no-plugins allow-plugins.topthink/think-installer true \
+   && composer install --no-interaction --prefer-dist --no-dev \
+   && composer dump-autoload -o'
 
 echo "Initializing Jira fixture..."
 docker compose -f "${COMPOSE_FILE}" exec -T app php /app/docker/jira/fixture-init.php

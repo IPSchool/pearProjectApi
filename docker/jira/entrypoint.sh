@@ -3,6 +3,9 @@ set -e
 
 cd /app
 
+# Bind mount from host (CI) may trigger "dubious ownership" and break composer autoload.
+git config --global --add safe.directory /app 2>/dev/null || true
+
 echo "[GateB] Waiting for MySQL..."
 until php -r "
 try {
