@@ -169,9 +169,9 @@ class Task extends CommonModel
             throw new Exception('该任务在回收站中不能点赞', 1);
         }
         if ($like) {
-            $result = self::where(['code' => $code])->setInc('like');
+            $result = self::where(['code' => $code])->inc('like')->update();
         } else {
-            $result = self::where(['code' => $code])->setDec('like');
+            $result = self::where(['code' => $code])->dec('like')->update();
         }
         $member = getCurrentMember();
         TaskLike::likeTask($code, $member['code'], $like);
@@ -197,9 +197,9 @@ class Task extends CommonModel
             throw new Exception('该任务在回收站中不能收藏', 1);
         }
         if ($star) {
-            $result = self::where(['code' => $code])->setInc('star');
+            $result = self::where(['code' => $code])->inc('star')->update();
         } else {
-            $result = self::where(['code' => $code])->setDec('star');
+            $result = self::where(['code' => $code])->dec('star')->update();
         }
         $member = getCurrentMember();
         Collection::starTask($code, $member['code'], $star);

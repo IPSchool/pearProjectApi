@@ -1,0 +1,44 @@
+name: Gate A + Gate B Regression
+
+on:
+  push:
+    branches: [master, upgrade/tp6]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: gate-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        run: pip install jira
+
+      - name: Run docker/jira regression
+        run: bash tests/ci/run-regression.sh
+
+      - name: Upload runtime logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-regression-logs
+          path: |
+            docker/runtime/log/**
+          if-no-files-found: ignore
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker/jira/docker-compose.yml down -v --remove-orphans

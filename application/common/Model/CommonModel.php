@@ -102,7 +102,10 @@ class CommonModel extends Model
 
     public function _edit($data, $where = [])
     {
-        return $this->isUpdate(true)->save($data, $where);
+        if (empty($where)) {
+            return false;
+        }
+        return self::update($data, $where);
     }
 
     public function _add($data)

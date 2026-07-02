@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gate B-α 一键冒烟 — 当前预期红灯
+# Gate B smoke — B-α / B-β / B-γ + jira-python Layer 4
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && cd .. && pwd)"
@@ -13,18 +13,19 @@ export JIRA_PROJECT_KEY="${JIRA_PROJECT_KEY:-TST}"
 echo "Gate B smoke — env from ${DIR}/env.sh or defaults"
 echo ""
 
+fail=0
+
 bash "$DIR/smoke/curl-myself.sh" || true
 echo ""
 
-python3 "$DIR/smoke/test_b_alpha.py"
-alpha=$?
+python3 "$DIR/smoke/test_b_alpha.py" || fail=1
+python3 "$DIR/smoke/test_b_beta.py" || fail=1
+python3 "$DIR/smoke/test_b_gamma.py" || fail=1
 
-python3 "$DIR/smoke/test_b_beta.py"
-beta=$?
+python3 "$DIR/smoke/test_jira_python.py" || fail=1
+python3 "$DIR/smoke/test_jira_python_extended.py" || fail=1
 
-python3 "$DIR/smoke/test_jira_python.py" || true
-
-if [ "$alpha" -ne 0 ] || [ "$beta" -ne 0 ]; then
+if [ "$fail" -ne 0 ]; then
   exit 1
 fi
 exit 0
