@@ -43,10 +43,10 @@
 cd docker/jira && docker compose up -d
 docker exec jira-app-1 composer install --no-interaction
 docker exec jira-app-1 php /app/docker/jira/fixture-init.php
-cd ../.. && tests/gate-a/run.sh   # Gate A 17/17 + Gate B smoke
+cd ../.. && tests/gate-a/run.sh   # Gate A 321 + Gate B 79
 ```
 
-**结果（2026-07-02）**：Gate A 17/17、B-α 13/13、B-β 11/11 全绿。
+**结果（2026-06-30）**：Gate A 321/321、B-α 13/13、B-β 11/11、B-γ 22/22、B-δ 26/26、jira-python L4 7/7 全绿。
 
 ## Gate B 验收（单独）
 
@@ -171,9 +171,23 @@ Legacy `project` 模块 **27 个控制器** 已全部迁至 TP6，`route/project
 | 迁移 | `application/common/Plugins/GateWayWorker/` → `app/common/Plugins/GateWayWorker/` |
 | Autoload | PSR-4：`service\`、`controller\`、`mail\`、`sms\`、`message\`；移除 PSR-0 `extend/` |
 | 脚本 | `start.sh` / `stop.sh` / `crontab*.sh` 路径更新 |
-| 中间件 | `config/middleware.php` 注册 `CORS` |
+| 中间件 | `config/middleware.php` 注册 `CORS`（后为避免 Swagger 冲突已移除全局 CORS，Legacy 仍靠 `BasicApi`） |
 | 删除 | 空 `application/`、`extend/` |
 | 验收 | Gate A + Gate B ~147 用例全绿 |
+
+## Phase 8 — 测试扩容 + Swagger（2026-06-30）
+
+| 项 | 说明 |
+|----|------|
+| Gate A Extended | HV-A18~A95，**75** 用例 |
+| Gate A Phase 2 | 扫描 `route/project.php` 路由差集 + 边界用例，**150** 通过（+6 skip 上传） |
+| Gate B-δ | `test_b_delta.py`，**26** 用例（Worklog、user/search、Swagger 等） |
+| 合计 | `tests/gate-a/run.sh` **321** 通过 |
+| OpenAPI | `OpenApiService` 从 Legacy + Jira 路由生成 spec |
+| 路由 | `GET /swagger-spec`（OpenAPI 3.0.3 JSON）、`GET /swagger-ui` |
+| 文件 | `route/docs.php`、`app/docs/controller/Index.php`、`docker/jira/nginx.conf` |
+| 修复 | Auth 401、Member logout session、CI `fix-runtime-perms.sh` |
+| 验收 | Gate A + Gate B 全绿；CI `gate-regression.yml` |
 
 ## HistoryV / Gate A
 
