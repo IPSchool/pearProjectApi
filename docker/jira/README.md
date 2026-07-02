@@ -1,15 +1,15 @@
 # Gate B — Jira API 兼容改造环境
 
-用于 **Gate B** 验收：在 `master` 分支开发 `/rest/api/3/*` 兼容层。
+用于 **Gate A + Gate B** 验收：`master` 分支 Legacy `project/*` 与 `/rest/api/3/*` 兼容层共用本 Compose。
 
-> 文档：[tests/jira/README.md](../../tests/jira/README.md) · [JiraAPI测试设计.md](../../../pearProjectDocs/Manual/JiraAPI测试设计.md)
+> 文档：[tests/jira/README.md](../../tests/jira/README.md) · [验收测试](../../../pearProjectDocs/Manual/验收测试.md) · [UPGRADE-TP6.md](../../UPGRADE-TP6.md)
 
 ## 与 HistoryV 的关系
 
 | 环境 | Compose | 分支 | 端口 | 用途 |
 |------|---------|------|------|------|
-| HistoryV | `docker/historyv` | HistoryV | 8080 | Gate A 功能回归 |
-| **Jira 改造** | `docker/jira` | master | **8090** | Gate B API 兼容 |
+| HistoryV | `docker/historyv` | HistoryV | 8080 | TP5 基线对照 |
+| **master TP6** | `docker/jira` | master | **8090** | Gate A Legacy + Gate B Jira |
 
 两者可同时运行（MySQL/Redis 端口不冲突：3307 vs 3308，6380 vs 6381）。
 
@@ -19,26 +19,59 @@
 cd pearProjectApi/docker/jira
 chmod +x start-jira.sh init-jira-fixture.sh
 ./start-jira.sh
+
+# 或手动
+docker compose up -d
+docker exec jira-app-1 composer install --no-interaction
+docker exec jira-app-1 php /app/docker/jira/fixture-init.php
+bash ../../tests/ci/fix-runtime-perms.sh
 ```
 
-## 运行 B-α 红灯测试
+## 运行全量回归
 
 ```bash
-cp tests/jira/env.sh.example tests/jira/env.sh
-tests/jira/smoke/run.sh   # 预期失败，直到实现兼容层
+cd pearProjectApi
+bash tests/gate-a/run.sh        # Gate A（321）+ Gate B（79）
+bash tests/ci/run-regression.sh # CI 同款（含 Docker build）
 ```
 
 ## 服务端口
 
 | 服务 | 端口 |
 |------|------|
-| Jira API (Nginx+PHP) | 8090 |
+| Nginx + PHP（Legacy + Jira + Swagger） | **8090** |
 | MySQL 5.7 | 3308 |
 | Redis | 6381 |
 
-## 待实现
+## API 入口
 
-- [ ] ThinkPHP `jira` 模块 + `/rest/api/3` 路由
-- [ ] Basic Auth + API Token
-- [ ] `init-jira-fixture.sh` 写入测试用户与 TST 项目
-- [ ] B-α 测试转绿
+| 路径 | 说明 |
+|------|------|
+| `POST /project/login/index` | Legacy 登录（Gate A） |
+| `GET /rest/api/3/myself` | Jira 当前用户（Gate B，Basic Auth） |
+| `GET /swagger-spec` | OpenAPI 3.0 JSON |
+| `GET /swagger-ui` | Swagger UI |
+
+## 测试账号
+
+| 用途 | 账号 | 凭据 |
+|------|------|------|
+| Gate A Legacy | `123456` | 密码传 md5 `e10adc3949ba59abbe56e057f20f883e` |
+| Gate B Jira | `jira-test@example.com` | API Token `gate-b-test-token` |
+
+Fixture 脚本：`docker/jira/fixture-init.php`（写入演示组织、TST 项目、Jira 测试用户）。
+
+## 已实现
+
+- [x] ThinkPHP 6 `app/jira/` + `/rest/api/3` 路由
+- [x] Basic Auth + API Token
+- [x] `fixture-init.php` 测试用户与 TST 项目
+- [x] B-α ~ B-δ smoke 全绿
+- [x] Gate A Core + Extended + Phase 2 全绿
+- [x] OpenAPI 自动生成 + Swagger UI
+- [x] GitHub Actions `gate-regression.yml`
+
+## 已知限制
+
+- WebSocket（GateWayWorker）未包含在本 Compose，需另行 `start.sh`
+- Layer 2 OpenAPI Contract / Golden File 全量对比仍在扩展中

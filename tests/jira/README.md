@@ -1,6 +1,6 @@
-# Gate B — Jira API 兼容测试（红灯阶段）
+# Gate B — Jira API 兼容测试
 
-> **当前状态**：测试已提交，**预期全部失败**，直到 `master` 实现 `/rest/api/3/*` 兼容层。  
+> **当前状态（2026-06-30）**：B-α ~ B-δ smoke **全绿**；CI 与本地 `tests/gate-a/run.sh` 合并执行。  
 > 权威定义：[pearProjectDocs/Manual/JiraAPI测试设计.md](../../../pearProjectDocs/Manual/JiraAPI测试设计.md)
 
 ## 目录
@@ -8,10 +8,15 @@
 ```text
 tests/jira/
 ├── env.sh.example       # 环境变量模板
-├── smoke/               # B-α 冒烟（Layer 1 + 4）
-│   ├── run.sh           # 一键运行
+├── smoke/
+│   ├── run.sh           # B-α ~ δ + jira-python
 │   ├── curl-myself.sh   # 官方 curl 回放
-│   └── test_b_alpha.py  # B-α 自动化（Python 3 标准库）
+│   ├── test_b_alpha.py  # B-α（13）
+│   ├── test_b_beta.py   # B-β（11）
+│   ├── test_b_gamma.py  # B-γ（22）
+│   ├── test_b_delta.py  # B-δ（26）
+│   ├── test_jira_python.py
+│   └── test_jira_python_extended.py  # L4（7）
 ├── contract/
 │   └── allowlist.yaml   # B-α 端点清单
 └── golden/              # Jira Cloud 录制响应（Golden File）
@@ -23,15 +28,18 @@ tests/jira/
 ```bash
 # 1. 启动改造环境（端口 8090）
 cd docker/jira
-./start-jira.sh
+docker compose up -d
+docker exec jira-app-1 php /app/docker/jira/fixture-init.php
+bash tests/ci/fix-runtime-perms.sh
 
-# 2. 配置环境变量
-cp ../../tests/jira/env.sh.example ../../tests/jira/env.sh
-# 编辑 env.sh 填入 JIRA_API_TOKEN 等
+# 2. 配置环境变量（可选，有默认值）
+cp tests/jira/env.sh.example tests/jira/env.sh
 
-# 3. 运行 B-α 测试（当前应红灯）
-cd ../../tests/jira/smoke
-./run.sh
+# 3. 运行 Gate B smoke
+bash tests/jira/smoke/run.sh
+
+# 或合并 Gate A + B
+bash tests/gate-a/run.sh
 ```
 
 ## 环境变量
@@ -43,14 +51,17 @@ cd ../../tests/jira/smoke
 | `JIRA_API_TOKEN` | `gate-b-test-token` | Basic Auth 密码（API Token） |
 | `JIRA_PROJECT_KEY` | `TST` | 测试项目 Key |
 
-## B-α 范围
+## 套件范围
 
-Auth + User + Project + Issue CRUD（见 `contract/allowlist.yaml`）。
+| 阶段 | 脚本 | 通过 | 范围 |
+|------|------|------|------|
+| **B-α** | `test_b_alpha.py` | 13 | Auth + User + Project + Issue CRUD |
+| **B-β** | `test_b_beta.py` | 11 | JQL Search + Comment + Transition |
+| **B-γ** | `test_b_gamma.py` | 22 | Agile Board/Sprint + Worklog + Version |
+| **B-δ** | `test_b_delta.py` | 26 | Webhook/Filter/Permission + Swagger 可达 |
+| **L4** | `test_jira_python*.py` | 7 | jira-python 客户端零修改冒烟 |
 
-## B-β 范围
+## 相关
 
-Search (JQL) + User Search + Comment + Transition（`smoke/test_b_beta.py`）。
-
-## 开始编码前 Checklist
-
-见 JiraAPI测试设计.md §11。全部勾选后方可实现 `/rest/api/3`。
+- [docker/jira/README.md](../../docker/jira/README.md)
+- [JiraAPI兼容.md](../../../pearProjectDocs/Manual/JiraAPI兼容.md)
