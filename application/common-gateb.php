@@ -79,7 +79,10 @@ function sysconf($name, $value = null)
         return DataService::save('SystemConfig', $data, 'name');
     }
     if (empty($config)) {
-        $config = Db::name('SystemConfig')->column('name,value');
+        $config = Db::name('SystemConfig')->column('value', 'name');
+    }
+    if ($name === '' && $value === null) {
+        return $config;
     }
     return $config[$name] ?? '';
 }
@@ -107,13 +110,24 @@ function decode($string)
 function request_only($fields, $filter = '')
 {
     if (is_string($fields)) {
-        $fields = array_map('trim', explode(',', $fields));
+        $fieldList = array_map('trim', explode(',', $fields));
+    } else {
+        $fieldList = $fields;
     }
     if ($filter !== '') {
-        return \think\facade\Request::only($fields, 'param', $filter);
+        $data = \think\facade\Request::only($fieldList, 'param', $filter);
+    } else {
+        $data = \think\facade\Request::only($fieldList);
     }
-    return \think\facade\Request::only($fields);
+    // TP6 Request::only 不返回缺失键；Legacy 代码依赖空字符串默认值
+    foreach ($fieldList as $field) {
+        if (!array_key_exists($field, $data)) {
+            $data[$field] = '';
+        }
+    }
+    return $data;
 }
 
+require_once __DIR__ . '/gateb-hook.php';
 require_once __DIR__ . '/gateb-upload.php';
 require_once __DIR__ . '/gateb-import.php';

@@ -9,11 +9,15 @@ class GatebUploadInfo
 {
     private $file;
     private $filename;
+    private $mime;
+    private $originalName;
 
-    public function __construct($file, string $filename)
+    public function __construct($file, string $filename, string $mime = '', string $originalName = '')
     {
         $this->file = $file;
         $this->filename = $filename;
+        $this->mime = $mime ?: 'application/octet-stream';
+        $this->originalName = $originalName ?: gateb_upload_original_name($file);
     }
 
     public function getExtension(): string
@@ -23,13 +27,7 @@ class GatebUploadInfo
 
     public function getInfo(): array
     {
-        $mime = 'application/octet-stream';
-        if (method_exists($this->file, 'getMime')) {
-            $mime = $this->file->getMime();
-        } elseif (method_exists($this->file, 'getOriginalExtension')) {
-            $mime = 'application/octet-stream';
-        }
-        return ['type' => $mime, 'name' => gateb_upload_original_name($this->file)];
+        return ['type' => $this->mime, 'name' => $this->originalName];
     }
 
     public function getSaveName(): string
@@ -74,8 +72,26 @@ function gateb_upload_move($file, string $path, $saveName = null): string
     if (!gateb_upload_allowed_ext($ext, (string) sysconf('storage_local_exts'))) {
         throw new \Exception('文件上传类型受限', 1);
     }
-    $moved = $file->move($path, is_string($saveName) ? $saveName : null);
+    if (is_string($saveName) && $saveName !== '' && $ext && !preg_match('/\.' . preg_quote($ext, '/') . '$/i', $saveName)) {
+        $saveName = $saveName . '.' . $ext;
+    }
+    $moved = $file->move($path, is_string($saveName) && $saveName !== '' ? $saveName : null);
     return str_replace('\\', '/', rtrim($path, '/\\') . '/' . $moved->getFilename());
+}
+
+function gateb_upload_mime($file): string
+{
+    if (method_exists($file, 'getMime')) {
+        try {
+            return (string) $file->getMime();
+        } catch (\Throwable $e) {
+            // TP6 move 后临时文件可能已删除
+        }
+    }
+    if (method_exists($file, 'getOriginalMime')) {
+        return (string) $file->getOriginalMime();
+    }
+    return 'application/octet-stream';
 }
 
 function gateb_upload_original_name($file): string
@@ -122,8 +138,10 @@ function _uploadFile($file, $path_name = '', $saveName = false)
         $filename = str_replace('\\', '/', $path_name . '/' . $info->getSaveName());
         $uploadInfo = $info;
     } else {
+        $mime = gateb_upload_mime($file);
+        $originalName = gateb_upload_original_name($file);
         $filename = gateb_upload_move($file, $path_name, is_string($saveName) && $saveName !== '' ? $saveName : null);
-        $uploadInfo = new GatebUploadInfo($file, $filename);
+        $uploadInfo = new GatebUploadInfo($file, $filename, $mime, $originalName);
     }
 
     $site_url = FileService::getFileUrl($filename, 'local');

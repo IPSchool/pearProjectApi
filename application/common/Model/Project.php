@@ -113,7 +113,7 @@ class Project extends CommonModel
         if (!$code) {
             throw new \Exception('请选择项目', 1);
         }
-        $project = self::where(['code' => $code, 'deleted' => 0])->field('id', true)->find();
+        $project = self::where(['code' => $code, 'deleted' => 0])->withoutField('id')->find();
         if (!$project) {
             throw new \Exception('该项目在回收站中无法编辑', 1);
         }

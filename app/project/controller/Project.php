@@ -291,7 +291,7 @@ class Project extends BasicApi
      */
     public function read(Request $request)
     {
-        $project = $this->model->where(['code' => $request::post('projectCode')])->field('id', true)->find();
+        $project = $this->model->where(['code' => $request::post('projectCode')])->withoutField('id')->find();
         if (!$project) {
             $this->notFound();
         }

@@ -13,7 +13,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use service\DataService;
 use service\NodeService;
 use service\RandomService;
-use think\Db;
+use think\facade\Db;
 use think\facade\Cache;
 use think\facade\Log;
 

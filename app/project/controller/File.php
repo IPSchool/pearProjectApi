@@ -64,7 +64,7 @@ class File extends BasicApi
      */
     public function read(Request $request)
     {
-        $file = $this->model->where(['code' => $request::post('fileCode')])->field('id', true)->find();
+        $file = $this->model->where(['code' => $request::post('fileCode')])->withoutField('id')->find();
         if (!$file) {
             $this->notFound();
         }
@@ -117,14 +117,18 @@ class File extends BasicApi
                 $ext = explode('.', $orgFileName);
                 $ext = $ext[count($ext) - 1];
                 $fileUrl = "{$path}/{$fileName}-{$i}.{$ext}";
-
-//                logRecord(['url' => $fileUrl], 'info', 'temp/uploadFiles');
-                $site_url = FileService::getFileUrl($fileUrl, 'local');
-                if ($site_url) {
-                    $blob = file_get_contents($site_url);
-//                $blob .= file_get_contents($site_url);
-                    $fileList[] = gateb_root_path() . ltrim($fileUrl, '/\\');
+                $realChunk = gateb_root_path() . ltrim($fileUrl, '/\\');
+                if (is_file($realChunk)) {
+                    $blob = file_get_contents($realChunk);
+                    $fileList[] = $realChunk;
                     $result = FileService::$type($path2, $blob, true);
+                } else {
+                    $site_url = FileService::getFileUrl($fileUrl, 'local');
+                    if ($site_url) {
+                        $blob = file_get_contents($site_url);
+                        $fileList[] = gateb_root_path() . ltrim($fileUrl, '/\\');
+                        $result = FileService::$type($path2, $blob, true);
+                    }
                 }
                 unset($blob);
                 unset($site_url);
@@ -132,6 +136,9 @@ class File extends BasicApi
             }
 //            $result = FileService::$type($path2, $blob);
             $fileData['size'] = $data['totalSize'];
+            if (empty($result['key'])) {
+                $this->error('文件合并失败', 500);
+            }
             $fileData['path_name'] = $result['key'];
             $fileData['file_url'] = $result['url'];
             $fileData['title'] = FileService::removeSuffix($data['filename']);

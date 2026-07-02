@@ -23,7 +23,7 @@ class Task extends CommonModel
         if (!$code) {
             throw new Exception('请选择任务', 1);
         }
-        $task = self::where(['code' => $code])->field('id', true)->find();
+        $task = self::where(['code' => $code])->withoutField('id')->find();
         if (!$task) {
             throw new Exception('该任务已失效', 404);
         }
@@ -34,7 +34,7 @@ class Task extends CommonModel
             $task['executor'] = Member::where(['code' => $task['assign_to']])->field('name,code,avatar')->find();
         }
         if ($task['pcode']) {
-            $task['parentTask'] = self::where(['code' => $task['pcode']])->field('id', true)->find();
+            $task['parentTask'] = self::where(['code' => $task['pcode']])->withoutField('id')->find();
             $parents = [];
             if (isset($task['path'])) {
                 $paths = explode(',', $task['path']);
@@ -87,7 +87,7 @@ class Task extends CommonModel
         if (!$code) {
             throw new Exception('请选择任务', 1);
         }
-        $task = self::where(['code' => $code, 'deleted' => 0])->field('id', true)->find();
+        $task = self::where(['code' => $code, 'deleted' => 0])->withoutField('id')->find();
         if (!$task) {
             throw new Exception('该任务在回收站中无法编辑', 1);
         }
@@ -137,11 +137,11 @@ class Task extends CommonModel
         if (!$code) {
             throw new Exception('请选择任务', 1);
         }
-        $task = self::where(['code' => $code])->field('id', true)->find();
+        $task = self::where(['code' => $code])->withoutField('id')->find();
         if (!$task) {
             throw new Exception('该任务不存在', 2);
         }
-        $sources = SourceLink::where(['link_code' => $code, 'link_type' => 'task'])->field('id', true)->order('id desc')->select()->toArray();
+        $sources = SourceLink::where(['link_code' => $code, 'link_type' => 'task'])->withoutField('id')->order('id desc')->select()->toArray();
         if ($sources) {
             foreach ($sources as &$source) {
                 $source = SourceLink::getSourceDetail($source['code']);
@@ -164,7 +164,7 @@ class Task extends CommonModel
         if (!$code) {
             throw new Exception('请选择任务', 1);
         }
-        $task = self::where(['code' => $code, 'deleted' => 0])->field('id', true)->find();
+        $task = self::where(['code' => $code, 'deleted' => 0])->withoutField('id')->find();
         if (!$task) {
             throw new Exception('该任务在回收站中不能点赞', 1);
         }
@@ -192,7 +192,7 @@ class Task extends CommonModel
         if (!$code) {
             throw new Exception('请选择任务', 1);
         }
-        $task = self::where(['code' => $code, 'deleted' => 0])->field('id', true)->find();
+        $task = self::where(['code' => $code, 'deleted' => 0])->withoutField('id')->find();
         if (!$task) {
             throw new Exception('该任务在回收站中不能收藏', 1);
         }
@@ -787,7 +787,7 @@ class Task extends CommonModel
     {
         $tags = [];
         if (isset($data['code'])) {
-            $tags = TaskToTag::where(['task_code' => $data['code']])->field('id', true)->order('id asc')->select()->toArray();
+            $tags = TaskToTag::where(['task_code' => $data['code']])->withoutField('id')->order('id asc')->select()->toArray();
         }
         return $tags;
     }

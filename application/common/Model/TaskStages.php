@@ -82,7 +82,7 @@ class TaskStages extends CommonModel
             !$joinTaskMember && $taskModel->leftJoin('task_member tm', 't.code = tm.task_code');
             $taskModel = $taskModel->whereIn('tm.member_code', $joiner);
         }
-        $list = $taskModel->order('t.sort asc,t.id asc')->field('id', true)->select();
+        $list = $taskModel->order('t.sort asc,t.id asc')->withoutField('id')->select();
         if ($list) {
             $taskMemberList = [];
             foreach ($list as &$task) {
@@ -138,7 +138,7 @@ class TaskStages extends CommonModel
         if ($list) {
             return $list;
         }
-        $list = Task::where($where)->order('sort asc,id asc')->field('id', true)->select()->toArray();
+        $list = Task::where($where)->order('sort asc,id asc')->withoutField('id')->select()->toArray();
         if ($list) {
             $taskMemberList = [];
             foreach ($list as &$task) {

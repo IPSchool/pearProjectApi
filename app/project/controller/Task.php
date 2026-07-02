@@ -126,7 +126,7 @@ class Task extends BasicApi
         $list = CommonModel::limitByQuery($sql, $page, $pageSize);
         if ($list['list']) {
             foreach ($list['list'] as &$task) {
-                $task['tags'] = TaskToTag::where(['task_code' => $task['code']])->field('id', true)->order('id asc')->select()->toArray();
+                $task['tags'] = TaskToTag::where(['task_code' => $task['code']])->withoutField('id')->order('id asc')->select()->toArray();
                 $task['executor'] = null;
                 if ($task['assign_to']) {
                     $task['executor'] = Member::where(['code' => $task['assign_to']])->field('name,code,avatar')->find();
@@ -378,7 +378,7 @@ class Task extends BasicApi
     public function taskToTags(Request $request)
     {
         $taskCode = $request::param('taskCode');
-        $tags = TaskToTag::where(['task_code' => $taskCode])->field('id', true)->select()->toArray();
+        $tags = TaskToTag::where(['task_code' => $taskCode])->withoutField('id')->select()->toArray();
         $this->success('', $tags);
     }
 
