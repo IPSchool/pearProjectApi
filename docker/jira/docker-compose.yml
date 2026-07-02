@@ -3,7 +3,7 @@
 
 services:
   mysql:
-    image: docker.m.daocloud.io/library/mysql:5.7
+    image: ${MYSQL_IMAGE:-mysql:5.7}
     platform: linux/amd64
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -24,7 +24,7 @@ services:
       - "3308:3306"
 
   redis:
-    image: docker.m.daocloud.io/library/redis:7-alpine
+    image: ${REDIS_IMAGE:-redis:7-alpine}
     ports:
       - "6381:6379"
 
@@ -32,6 +32,8 @@ services:
     build:
       context: ..
       dockerfile: jira/Dockerfile
+      args:
+        PHP_BASE: ${PHP_BASE:-php:8.2-fpm}
     ports:
       - "8090:8090"
     volumes:
