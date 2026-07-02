@@ -24,4 +24,30 @@ class Project
         }
         return JiraResponse::json(JiraProjectService::toJiraProject($project));
     }
+
+    public function create(Request $request)
+    {
+        $body = json_decode($request->getContent(), true);
+        if (!is_array($body)) {
+            $body = [];
+        }
+
+        $result = JiraProjectService::createProject(
+            $body,
+            $request->jiraMember['code'],
+            getCurrentOrganizationCode()
+        );
+
+        if (!$result['ok']) {
+            if (!empty($result['errors'])) {
+                return JiraResponse::badRequest($result['errors'], isset($result['message']) ? [$result['message']] : []);
+            }
+            return JiraResponse::json([
+                'errorMessages' => [$result['message'] ?? 'Failed to create project'],
+                'errors'        => new \stdClass(),
+            ], $result['status'] ?? 400);
+        }
+
+        return JiraResponse::json($result['data'], 201);
+    }
 }

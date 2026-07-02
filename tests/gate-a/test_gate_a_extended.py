@@ -207,10 +207,7 @@ def test_task_stages_and_members() -> None:
     check("HV-A51", "任务成员列表", client.ok(res))
 
     res, status = client.post("project/taskMember/searchInviteMember", {"taskCode": task_code, "keyword": "123456"})
-    if status == 500:
-        skip("HV-A52", "搜索任务成员", "PHP 8.2 trim(null) — 待修复")
-    else:
-        check_no500("HV-A52", "搜索任务成员", res, status)
+    check_no500("HV-A52", "搜索任务成员", res, status)
 
 
 def test_task_tags() -> None:

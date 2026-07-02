@@ -37,6 +37,14 @@ class JiraResponse
         ], 400);
     }
 
+    public static function forbidden(string $message = 'Forbidden'): Response
+    {
+        return self::json([
+            'errorMessages' => [$message],
+            'errors'        => new \stdClass(),
+        ], 403);
+    }
+
     public static function noContent(): Response
     {
         return Response::create('', 'html', 204);

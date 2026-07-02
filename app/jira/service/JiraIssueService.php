@@ -67,6 +67,10 @@ class JiraIssueService
 
     public static function toJiraIssue(array $task, array $project, string $issueKey): array
     {
+        $isSubtask = !empty($task['pcode']);
+        $issueTypeName = $isSubtask ? 'Sub-task' : 'Task';
+        $issueTypeId = $isSubtask ? '10002' : '10001';
+
         return [
             'expand' => 'renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations',
             'id'     => (string) $task['id'],
@@ -76,12 +80,12 @@ class JiraIssueService
                 'summary'   => $task['name'],
                 'project'   => JiraProjectService::toJiraProject($project),
                 'issuetype' => [
-                    'self'        => request()->domain() . '/rest/api/3/issuetype/10001',
-                    'id'          => '10001',
-                    'description' => 'A task that needs to be done.',
+                    'self'        => request()->domain() . '/rest/api/3/issuetype/' . $issueTypeId,
+                    'id'          => $issueTypeId,
+                    'description' => $isSubtask ? 'A sub-task of an issue.' : 'A task that needs to be done.',
                     'iconUrl'     => '',
-                    'name'        => 'Task',
-                    'subtask'     => false,
+                    'name'        => $issueTypeName,
+                    'subtask'     => $isSubtask,
                 ],
                 'status' => [
                     'self'           => request()->domain() . '/rest/api/3/status/10000',
@@ -106,6 +110,7 @@ class JiraIssueService
         $projectKey = strtoupper($fields['project']['key'] ?? '');
         $summary = trim($fields['summary'] ?? '');
         $issueTypeName = $fields['issuetype']['name'] ?? 'Task';
+        $isSubtask = strcasecmp($issueTypeName, 'Sub-task') === 0;
 
         if ($summary === '') {
             return ['error' => 'validation', 'errors' => ['summary' => "Field 'summary' is required"]];
@@ -119,6 +124,27 @@ class JiraIssueService
             return ['error' => 'not_found', 'message' => "No project could be found with key '{$projectKey}'."];
         }
 
+        $parentCode = '';
+        if ($isSubtask) {
+            $parentRef = $fields['parent'] ?? null;
+            if (!is_array($parentRef)) {
+                return ['error' => 'validation', 'errors' => ['parent' => "Field 'parent' is required for sub-tasks"]];
+            }
+            $parentKey = $parentRef['key'] ?? '';
+            $parentId = $parentRef['id'] ?? '';
+            if ($parentKey !== '') {
+                $parentParsed = self::parseIssueKey((string) $parentKey);
+            } elseif ($parentId !== '') {
+                $parentParsed = self::parseIssueKey((string) $parentId);
+            } else {
+                $parentParsed = null;
+            }
+            if (!$parentParsed || $parentParsed['project']['code'] !== $project['code']) {
+                return ['error' => 'validation', 'errors' => ['parent' => 'Parent issue is invalid']];
+            }
+            $parentCode = $parentParsed['task']['code'];
+        }
+
         $stage = TaskStages::where(['project_code' => $project['code']])->order('sort asc,id asc')->find();
         if (!$stage) {
             return ['error' => 'server', 'message' => 'Project has no task stages configured.'];
@@ -129,14 +155,16 @@ class JiraIssueService
             $stage['code'],
             $project['code'],
             $summary,
-            $memberCode
+            $memberCode,
+            '',
+            $parentCode
         );
         if (isError($result)) {
             return ['error' => 'server', 'message' => $result['msg'] ?? 'Failed to create issue'];
         }
 
         $task = Task::where(['code' => $result['code']])
-            ->field('id,code,project_code,name,id_num')
+            ->field('id,code,project_code,name,id_num,pcode')
             ->find()
             ->toArray();
         $issueKey = strtoupper($project['prefix']) . '-' . $task['id_num'];

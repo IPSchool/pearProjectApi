@@ -3,7 +3,7 @@
 | 套件 | 脚本 | 用例数 |
 |------|------|--------|
 | Core | `test_gate_a.py` | HV-A01 ~ A17（17） |
-| Extended | `test_gate_a_extended.py` | HV-A18 ~ A95（78，含 1 skip） |
+| Extended | `test_gate_a_extended.py` | HV-A18 ~ A95（78） |
 
 ```bash
 cd pearProjectApi

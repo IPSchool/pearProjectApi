@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import uuid
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -77,6 +78,48 @@ class JiraClient:
                 }
             ],
         }
+
+    def upload_attachment(
+        self,
+        issue_key: str,
+        filename: str,
+        content: bytes,
+        *,
+        atl_token: str | None = "no-check",
+        auth: bool = True,
+    ) -> tuple[int, dict | list | str]:
+        boundary = "----PearGateB" + uuid.uuid4().hex
+        disposition = f'form-data; name="file"; filename="{filename}"'
+        body = (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: {disposition}\r\n'
+            f"Content-Type: application/octet-stream\r\n\r\n"
+        ).encode() + content + f"\r\n--{boundary}--\r\n".encode()
+
+        url = f"{self.base}/rest/api/3/issue/{issue_key}/attachments"
+        hdrs = {
+            "Accept": "application/json",
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+        }
+        if auth:
+            hdrs["Authorization"] = self.basic_auth()
+        if atl_token is not None:
+            hdrs["X-Atlassian-Token"] = atl_token
+
+        req = urllib.request.Request(url, data=body, headers=hdrs, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=25) as resp:
+                raw = resp.read().decode("utf-8", errors="replace")
+                status = resp.status
+        except urllib.error.HTTPError as exc:
+            status = exc.code
+            raw = exc.read().decode("utf-8", errors="replace")
+        except urllib.error.URLError as exc:
+            return 0, str(exc.reason)
+        try:
+            return status, json.loads(raw) if raw else {}
+        except json.JSONDecodeError:
+            return status, raw[:500]
 
     def create_task(self, summary: str) -> tuple[int, dict | str]:
         return self.request(

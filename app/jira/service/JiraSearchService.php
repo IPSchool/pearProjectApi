@@ -56,6 +56,11 @@ class JiraSearchService
             }
         }
 
+        $summaryLike = null;
+        if (preg_match('/summary\s*~\s*"([^"]+)"/i', $jql, $m)) {
+            $summaryLike = $m[1];
+        }
+
         if ($maxResults < 1) {
             $maxResults = 50;
         }
@@ -74,6 +79,10 @@ class JiraSearchService
             $sqlBase .= " AND {$field} = ?";
             $params[] = $value;
         }
+        if ($summaryLike !== null) {
+            $sqlBase .= " AND t.name LIKE ?";
+            $params[] = '%' . $summaryLike . '%';
+        }
         $sqlBase .= " ORDER BY t.id DESC";
 
         $all = Db::query($sqlBase, $params);
@@ -85,7 +94,7 @@ class JiraSearchService
             $project = Project::where(['code' => $row['project_code']])->find()->toArray();
             $key = strtoupper($project['prefix']) . '-' . $row['id_num'];
             $task = Task::where(['code' => $row['code']])
-                ->field('id,code,project_code,name,pri,execute_status,description,create_by,done,status,id_num,stage_code,assign_to')
+                ->field('id,code,project_code,name,pri,execute_status,description,create_by,done,status,id_num,stage_code,assign_to,pcode')
                 ->find()
                 ->toArray();
             $issues[] = JiraIssueService::toJiraIssue($task, $project, $key);

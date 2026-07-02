@@ -20,6 +20,21 @@ class JiraAuth
         $request->jiraAccountId = $auth['account_id'];
         $request->jiraMember = $auth['member'];
 
+        $orgCode = \app\common\Model\MemberAccount::where(['member_code' => $auth['member']['code']])
+            ->order('id asc')
+            ->value('organization_code');
+        if (!$orgCode) {
+            $config = (new \app\common\Model\SystemConfig())->info();
+            $orgCode = $config['single_org_code'] ?? '';
+        }
+        if (!$orgCode) {
+            $org = \app\common\Model\Organization::order('id asc')->find();
+            $orgCode = $org ? $org['code'] : '';
+        }
+        if ($orgCode) {
+            setCurrentOrganizationCode($orgCode);
+        }
+
         return $next($request);
     }
 }

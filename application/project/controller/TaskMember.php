@@ -54,8 +54,13 @@ class TaskMember extends BasicApi
      */
     public function searchInviteMember()
     {
-        $keyword = trim(Request::post('keyword'));
-        $code = trim(Request::post('projectCode'));
+        $keyword = trim((string) Request::post('keyword', ''));
+        $code = trim((string) Request::post('projectCode', ''));
+        $taskCode = trim((string) Request::post('taskCode', ''));
+        if (!$code && $taskCode) {
+            $task = \app\common\Model\Task::where(['code' => $taskCode, 'deleted' => 0])->field('project_code')->find();
+            $code = $task ? (string) $task['project_code'] : '';
+        }
         if (!$code) {
             $this->error('请先选择项目');
         }
@@ -64,9 +69,11 @@ class TaskMember extends BasicApi
             $this->success('');
         }
         $project = \app\common\Model\Project::where(['code' => $code])->field('id')->find();
-        $projectId = $project['id'];
+        if (!$project) {
+            $this->error('项目不存在');
+        }
         //先找出项目所有成员
-        $projectMemberIds = $this->model->where([['project_code', '=', $code]])->column('member_code');
+        $projectMemberIds = \app\common\Model\ProjectMember::where([['project_code', '=', $code]])->column('member_code');
         $tempList = [];
         //从当前组织的所有成员查询，判断是否已加入该项目，并存储已加入项目的成员的account_id
         $memberAccountList = MemberAccount::where([['name', 'like', "%{$keyword}%"], ['organization_code', '=', $orgCode]])->select()->toArray();
@@ -86,11 +93,11 @@ class TaskMember extends BasicApi
             }
         }
         //从平台查询
-        $memberList = Member::where([['email', 'like', "%{$keyword}%"]])->whereNotIn('id', $projectMemberIds)->select()->toArray();
+        $memberList = Member::where([['email', 'like', "%{$keyword}%"]])->whereNotIn('code', $projectMemberIds)->select()->toArray();
         if ($memberList) {
             foreach ($memberList as $member) {
                 $item = [];
-                $item['memberCode'] = $member['member_code'];
+                $item['memberCode'] = $member['code'];
                 $item['avatar'] = $member['avatar'];
                 $item['name'] = $member['name'];
                 $item['email'] = $member['email'] ?? '未绑定邮箱';

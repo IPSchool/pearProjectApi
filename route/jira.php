@@ -24,12 +24,19 @@ Route::group('rest/api/3', function () use ($issueKeyPattern) {
     Route::get('user/search', 'app\jira\controller\v3\User@index');
     Route::get('user', 'app\jira\controller\v3\User@index');
     Route::get('project/search', 'app\jira\controller\v3\Project@search');
+    Route::post('project', 'app\jira\controller\v3\Project@create');
     Route::get('project/:projectKey', 'app\jira\controller\v3\Project@read');
     Route::post('search', 'app\jira\controller\v3\Search@index');
 
     Route::get('issue/:issueIdOrKey/comment', 'app\jira\controller\v3\IssueComment@index')
         ->pattern($issueKeyPattern);
     Route::post('issue/:issueIdOrKey/comment', 'app\jira\controller\v3\IssueComment@create')
+        ->pattern($issueKeyPattern);
+    Route::get('issue/:issueIdOrKey/worklog', 'app\jira\controller\v3\IssueWorklog@index')
+        ->pattern($issueKeyPattern);
+    Route::post('issue/:issueIdOrKey/worklog', 'app\jira\controller\v3\IssueWorklog@create')
+        ->pattern($issueKeyPattern);
+    Route::post('issue/:issueIdOrKey/attachments', 'app\jira\controller\v3\IssueAttachment@create')
         ->pattern($issueKeyPattern);
     Route::get('issue/:issueIdOrKey/transitions', 'app\jira\controller\v3\IssueTransition@index')
         ->pattern($issueKeyPattern);
