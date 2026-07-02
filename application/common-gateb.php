@@ -87,6 +87,39 @@ function sysconf($name, $value = null)
     return $config[$name] ?? '';
 }
 
+function gateb_storage_type($override = null)
+{
+    if ($override !== null && $override !== '') {
+        return $override;
+    }
+    $type = sysconf('storage_type');
+    if ($type === '' || $type === null) {
+        $type = config('storage.storage_type');
+    }
+    return $type ?: 'local';
+}
+
+/**
+ * 将已落盘的本地文件按当前 storage_type 持久化（云存储时删除本地副本）
+ */
+function gateb_persist_uploaded_file(string $filename, ?string $storage = null): array
+{
+    $storageType = gateb_storage_type($storage);
+    $realPath = gateb_root_path() . ltrim($filename, '/\\');
+    $content = is_file($realPath) ? file_get_contents($realPath) : '';
+    if ($content === false || $content === '') {
+        $url = \service\FileService::getFileUrl($filename, 'local');
+        if ($url) {
+            $content = @file_get_contents($url) ?: '';
+        }
+    }
+    $fileInfo = \service\FileService::save($filename, $content, $storageType);
+    if ($fileInfo && $storageType !== 'local' && is_file($realPath)) {
+        @unlink($realPath);
+    }
+    return $fileInfo ?: [];
+}
+
 function logRecord($content, $type = 'info', $path = 'default')
 {
     if (is_array($content) || is_object($content)) {

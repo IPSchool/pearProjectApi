@@ -144,10 +144,7 @@ function _uploadFile($file, $path_name = '', $saveName = false)
         $uploadInfo = new GatebUploadInfo($file, $filename, $mime, $originalName);
     }
 
-    $site_url = FileService::getFileUrl($filename, 'local');
-    $realPath = gateb_root_path() . ltrim($filename, '/\\');
-    $content = is_file($realPath) ? file_get_contents($realPath) : @file_get_contents($site_url);
-    $fileInfo = FileService::save($filename, $content ?: '', 'local');
+    $fileInfo = gateb_persist_uploaded_file($filename);
     if ($fileInfo) {
         return [
             'base_url'   => $fileInfo['key'],

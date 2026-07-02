@@ -119,7 +119,15 @@ Legacy `project` 模块 **27 个控制器** 已全部迁至 TP6，`route/project
 | 修复 | `CommonModel::_uploadImg` TP6 兼容；`FileService::local` 根路径与 URL；`gateb_root_path()` |
 | 验收 | `_uploadImg` 返回 `/static/upload/...` URL；Gate B smoke 仍全绿 |
 
-**仍待后续**（可选）：七牛/OSS 云存储 SDK 依赖（`storage_type` 非 local 时）。
+**Phase 5 — 云存储（2026-07-02）**
+
+| 项 | 说明 |
+|----|------|
+| 依赖 | `qiniu/php-sdk` ^7.12、`aliyuncs/oss-sdk-php` ^2.7 |
+| 路由 | `gateb_storage_type()` / `gateb_persist_uploaded_file()` — 按 `sysconf('storage_type')` 或 `config/storage.php` 选择 local/qiniu/oss |
+| 上传 | `_uploadFile` / `_uploadImg` 先落本地临时文件，再按配置引擎持久化；非 local 时删除本地副本 |
+| 分片 | `File::uploadFiles` 碎片仍走 local temp，合并后写入当前 `storage_type` |
+| 验收 | 默认 `local`：Gate A HV-A11 + Gate B smoke 全绿；切换 qiniu/oss 需配置 `pear_system_config` |
 
 ## HistoryV / Gate A
 

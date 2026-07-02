@@ -108,7 +108,7 @@ class File extends BasicApi
             'file_type' => $info->getInfo()['type'],
         ];
         $result = [];
-        $type = empty($file_storage) ? sysconf('storage_type') : $file_storage;
+        $type = empty($file_storage) ? gateb_storage_type() : $file_storage;
         $path2 = config('upload.base_path') . config('upload.file') . "/{$orgCode}/{$memberCode}/$date/$ticket-$orgFileName";
         if ($chunkNumber == $totalChunks) {
             $fileList = [];

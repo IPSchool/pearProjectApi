@@ -145,10 +145,7 @@ class CommonModel extends Model
             $filename = str_replace('\\', '/', $path_name . '/' . $info->getSaveName());
             $originalName = $file->getInfo('name');
         }
-        $site_url = FileService::getFileUrl($filename, 'local');
-        $realPath = function_exists('gateb_root_path') ? gateb_root_path() . ltrim($filename, '/\\') : (env('root_path') . $filename);
-        $content = is_file($realPath) ? file_get_contents($realPath) : @file_get_contents($site_url);
-        $fileInfo = FileService::save($filename, $content ?: file_get_contents($site_url), 'local');
+        $fileInfo = gateb_persist_uploaded_file($filename);
         if ($fileInfo) {
             return ['base_url' => $fileInfo['key'], 'url' => $fileInfo['url'], 'filename' => $originalName];
         }

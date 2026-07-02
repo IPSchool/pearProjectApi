@@ -8,7 +8,9 @@
     "topthink/framework": "^6.1.0",
     "topthink/think-orm": "^2.0",
     "firebase/php-jwt": "^5.5",
-    "phpoffice/phpspreadsheet": "^1.29"
+    "phpoffice/phpspreadsheet": "^1.29",
+    "qiniu/php-sdk": "^7.12",
+    "aliyuncs/oss-sdk-php": "^2.7"
   },
   "autoload": {
     "psr-4": {

@@ -22,6 +22,21 @@ class FileService
 {
 
     /**
+     * 解析存储引擎（local / qiniu / oss）
+     */
+    private static function storageType($storage = null)
+    {
+        if (!empty($storage)) {
+            return $storage;
+        }
+        if (function_exists('gateb_storage_type')) {
+            return gateb_storage_type();
+        }
+        $type = sysconf('storage_type');
+        return $type ?: 'local';
+    }
+
+    /**
      * 根据文件后缀获取文件MINE
      * @param array $ext 文件后缀
      * @param array $mine 文件后缀MINE信息
@@ -62,9 +77,9 @@ class FileService
      * @throws \think\Exception
      * @throws \think\exception\PDOException
      */
-    public static function getFilePrefix()
+    public static function getFilePrefix($storage = null)
     {
-        switch (empty($storage) ? sysconf('storage_type') : $storage) {
+        switch (self::storageType($storage)) {
             case 'local':
                 return self::getBaseUriLocal();
             case 'qiniu':
@@ -89,7 +104,7 @@ class FileService
         if (self::hasFile($filename, $storage) === false) {
             return false;
         }
-        switch (empty($storage) ? sysconf('storage_type') : $storage) {
+        switch (self::storageType($storage)) {
             case 'local':
                 return self::getBaseUriLocal() . $filename;
             case 'qiniu':
@@ -239,7 +254,7 @@ class FileService
      */
     public static function hasFile($filename, $storage = null)
     {
-        switch (empty($storage) ? sysconf('storage_type') : $storage) {
+        switch (self::storageType($storage)) {
             case 'local':
                 $root = function_exists('gateb_root_path') ? gateb_root_path() : rtrim((string) env('root_path'), '/\\') . DIRECTORY_SEPARATOR;
                 return file_exists($root . ltrim($filename, '/\\'));
@@ -266,9 +281,10 @@ class FileService
      */
     public static function readFile($filename, $storage = null)
     {
-        switch (empty($storage) ? sysconf('storage_type') : $storage) {
+        switch (self::storageType($storage)) {
             case 'local':
-                $file = env('root_path') . config('upload.base_path') . $filename;
+                $root = function_exists('gateb_root_path') ? gateb_root_path() : rtrim((string) env('root_path'), '/\\') . DIRECTORY_SEPARATOR;
+                $file = $root . ltrim($filename, '/\\');
                 return file_exists($file) ? file_get_contents($file) : '';
             case 'qiniu':
                 $auth = new Auth(sysconf('storage_qiniu_access_key'), sysconf('storage_qiniu_secret_key'));
@@ -292,7 +308,7 @@ class FileService
      */
     public static function save($filename, $content, $file_storage = null)
     {
-        $type = empty($file_storage) ? sysconf('storage_type') : $file_storage;
+        $type = self::storageType($file_storage);
         if (!method_exists(__CLASS__, $type)) {
             Log::error("保存存储失败，调用{$type}存储引擎不存在！");
             return false;
@@ -345,9 +361,12 @@ class FileService
             Log::error('七牛云文件上传失败, ' . $err->getMessage());
             return null;
         }
-        $result['file'] = $filename;
-        $result['url'] = self::getBaseUriQiniu() . $filename;
-        return $result;
+        return [
+            'file' => $filename,
+            'hash' => $result['hash'] ?? md5($content),
+            'key'  => $filename,
+            'url'  => self::getBaseUriQiniu() . $filename,
+        ];
     }
 
     /**
