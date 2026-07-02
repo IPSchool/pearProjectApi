@@ -15,5 +15,5 @@
 /config/dingtalk.php
 /config/mail.php
 /thinkphp
-/application/project
-/application/jira
+/application
+/extend

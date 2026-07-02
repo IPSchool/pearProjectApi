@@ -159,6 +159,19 @@ Legacy `project` 模块 **27 个控制器** 已全部迁至 TP6，`route/project
 | 保留 | `application/common/Plugins/GateWayWorker/`（WebSocket 脚本仍引用） |
 | 验收 | Gate A + Gate B ~147 用例全绿 |
 
+## Phase 7 — extend / Plugins 归位（2026-07-02）
+
+| 项 | 说明 |
+|----|------|
+| 迁移 | `extend/service/` → `app/service/`；`extend/controller/BasicApi.php` → `app/common/controller/` |
+| 迁移 | `extend/mail/`、`extend/sms/`、`extend/message/` → `app/mail/` 等 |
+| 迁移 | `application/common/Plugins/GateWayWorker/` → `app/common/Plugins/GateWayWorker/` |
+| Autoload | PSR-4：`service\`、`controller\`、`mail\`、`sms\`、`message\`；移除 PSR-0 `extend/` |
+| 脚本 | `start.sh` / `stop.sh` / `crontab*.sh` 路径更新 |
+| 中间件 | `config/middleware.php` 注册 `CORS` |
+| 删除 | 空 `application/`、`extend/` |
+| 验收 | Gate A + Gate B ~147 用例全绿 |
+
 ## HistoryV / Gate A
 
 Gate A 脚本：`tests/gate-a/run.sh`（8090 Docker，账号 `123456` / md5 密码见 fixture）。HistoryV TP5 基线仍可在 `HistoryV` 分支 + `docker/historyv` 对照。

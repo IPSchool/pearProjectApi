@@ -1,2 +1,2 @@
 #!/bin/bash
-php application/common/Plugins/GateWayWorker/crontab.php stop&
+php app/common/Plugins/GateWayWorker/crontab.php stop&
