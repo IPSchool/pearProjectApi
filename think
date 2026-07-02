@@ -4,7 +4,7 @@ namespace think;
 
 require __DIR__ . '/vendor/autoload.php';
 
-require_once __DIR__ . '/application/common-gateb.php';
+require_once __DIR__ . '/app/common/common-gateb.php';
 
 $console = (new App())->console;
 $console->run();

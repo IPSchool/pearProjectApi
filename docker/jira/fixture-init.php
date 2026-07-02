@@ -10,7 +10,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 ini_set('display_errors', '1');
 
 require $rootPath . 'vendor/autoload.php';
-require_once $rootPath . 'application/common-gateb.php';
+require_once $rootPath . 'app/common/common-gateb.php';
 
 $app = new App();
 $app->initialize();

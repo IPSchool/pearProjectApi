@@ -10,7 +10,6 @@ use Qiniu\Auth;
 use Qiniu\Storage\BucketManager;
 use Qiniu\Storage\UploadManager;
 use think\facade\Log;
-use think\File;
 
 /**
  * 系统文件服务

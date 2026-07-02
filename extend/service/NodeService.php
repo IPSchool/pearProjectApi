@@ -124,7 +124,7 @@ class NodeService
         $path = env('app_path');
         if (!$path) {
             $root = app()->getRootPath();
-            $path = is_dir($root . 'app/project/controller') ? $root . 'app/' : $root . 'application/';
+            $path = $root . 'app/';
         }
         if ($module) {
             $path .= '/' . $module;

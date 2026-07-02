@@ -16,7 +16,6 @@ use think\db\exception\DataNotFoundException;
 use think\db\exception\ModelNotFoundException;
 use think\exception\DbException;
 use think\facade\Request;
-use think\File;
 
 /**
  * Class Account

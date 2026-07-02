@@ -23,7 +23,6 @@ use think\db\exception\ModelNotFoundException;
 use think\facade\Db;
 use think\exception\PDOException;
 use think\facade\Request;
-use think\File;
 
 /**
  */

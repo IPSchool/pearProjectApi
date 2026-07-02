@@ -145,7 +145,11 @@ class Index extends BasicApi
     {
         $memberModel = new Member();
         $params = request_only('password,newPassword,confirmPassword,id');
-        $member = $memberModel->field('password')->get($params['id'])->toArray();
+        $member = $memberModel->field('password')->where('id', $params['id'])->find();
+        if (!$member) {
+            $this->error('用户不存在');
+        }
+        $member = $member->toArray();
         if (strlen($params['password']) < 6 || strlen($params['newPassword']) < 6 || strlen($params['confirmPassword']) < 6) {
             $this->error("密码必须包含6个字符");
         }

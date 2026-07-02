@@ -6,9 +6,7 @@ namespace think;
 
 require __DIR__ . '/vendor/autoload.php';
 
-require_once __DIR__ . '/application/common-gateb.php';
-
-file_exists(__DIR__ . '/think') || touch(__DIR__ . '/think');
+require_once __DIR__ . '/app/common/common-gateb.php';
 
 $http = (new App())->http;
 

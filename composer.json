@@ -14,9 +14,7 @@
   },
   "autoload": {
     "psr-4": {
-      "app\\": "app/",
-      "app\\common\\Model\\": "application/common/Model/",
-      "app\\project\\": "app/project/"
+      "app\\": "app/"
     },
     "psr-0": {
       "": "extend/"

@@ -5,7 +5,7 @@ namespace app\project\controller;
 use app\common\Model\MemberAccount;
 use app\common\Model\ProjectMenu;
 use controller\BasicApi;
-use think\Db;
+use think\facade\Db;
 use think\facade\Request;
 
 class Menu extends BasicApi

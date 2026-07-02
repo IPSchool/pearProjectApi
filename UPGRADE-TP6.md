@@ -9,10 +9,10 @@
 | 框架 | Composer `topthink/framework` ^6.1 |
 | PHP | 8.0+（Docker Gate B/A：8.2） |
 | 入口 | `index.php` → TP6 Http |
-| 公共函数 | `application/common-gateb.php` |
+| 公共函数 | `app/common/common-gateb.php` |
 | Jira 模块 | `app/jira/` + `route/jira.php` |
 | Legacy project | `app/project/controller/` + `route/project.php` |
-| 模型 | `application/common/Model/`（PSR-4 映射） |
+| 模型 | `app/common/Model/` |
 | 存储 | local / qiniu / oss（`gateb_storage_type()`） |
 
 ## 历史对照（合并前）
@@ -28,7 +28,7 @@
 1. **路由**：`Route::get('x', [Foo::class, 'bar'])` 在 TP6.1 会触发 `strpos(array)` 500；改用 `'app\jira\controller\v3\Foo@bar'`。
 2. **Db**：模型与脚本统一 `think\facade\Db`。
 3. **表前缀**：`config/database.php` 增加顶层 `prefix`，兼容 `config('database.prefix')`。
-4. **Hook**：TP6 无原生 Hook；Legacy 路径通过 `application/gateb-hook.php` 提供 no-op 兼容。
+4. **Hook**：TP6 无原生行为 Hook；Legacy `projectHook` 等已移除无效 `Hook::listen` 调用。
 5. **异常**：`app/ExceptionHandle.php` 对 `/rest/api/3/*` 与 `/project/*` 返回 JSON。
 6. **Request::only**：TP6 签名为 `only(array $name, $data, $filter)`；使用 `request_only()`（`common-gateb.php`）。
 7. **Model::get**：TP6 已移除；改用 `find()` / `where()->find()`。
@@ -147,6 +147,17 @@ Legacy `project` 模块 **27 个控制器** 已全部迁至 TP6，`route/project
 | 上传 | `_uploadFile` / `_uploadImg` 先落本地临时文件，再按配置引擎持久化；非 local 时删除本地副本 |
 | 分片 | `File::uploadFiles` 碎片仍走 local temp，合并后写入当前 `storage_type` |
 | 验收 | 默认 `local`：Gate A HV-A11 + Gate B smoke 全绿；切换 qiniu/oss 需配置 `pear_system_config` |
+
+## Phase 6 — TP5 遗留清理（2026-07-02）
+
+| 项 | 说明 |
+|----|------|
+| 删除 | 内嵌 `thinkphp/`（217 文件）、`application/project/`、`application/jira/`、`application/index/` 等 TP5 重复目录（~260 文件） |
+| 归位 | `application/common/Model/` → `app/common/Model/`；gateb 辅助文件 → `app/common/` |
+| Autoload | `composer.json` 统一 `"app\\": "app/"`，移除分裂映射 |
+| API 修复 | `think\Db` → facade；`Model::get()` → `find()`；移除无效 Hook；上传类型去掉 `think\File` |
+| 保留 | `application/common/Plugins/GateWayWorker/`（WebSocket 脚本仍引用） |
+| 验收 | Gate A + Gate B ~147 用例全绿 |
 
 ## HistoryV / Gate A
 

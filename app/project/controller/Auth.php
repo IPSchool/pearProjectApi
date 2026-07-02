@@ -10,7 +10,6 @@ use service\FileService;
 use service\NodeService;
 use service\ToolsService;
 use think\facade\Request;
-use think\File;
 
 /**
  * Class Account

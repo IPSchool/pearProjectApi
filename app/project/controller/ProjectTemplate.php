@@ -17,7 +17,6 @@ use service\RandomService;
 use think\Exception;
 use think\exception\PDOException;
 use think\facade\Request;
-use think\File;
 
 /**
  */
