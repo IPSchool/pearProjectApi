@@ -7,7 +7,7 @@ INTERVAL=5
 elapsed=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 COMPOSE_FILE="${ROOT}/docker/jira/docker-compose.yml"
-ACCOUNT="${GATE_A_ACCOUNT:-123456}"
+ACCOUNT="${GATE_A_ACCOUNT:-Lincoln}"
 
 echo "Waiting for DB seed (pear_member.account=${ACCOUNT}, max ${MAX_WAIT}s)..."
 

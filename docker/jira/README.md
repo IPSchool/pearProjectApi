@@ -56,7 +56,7 @@ bash tests/ci/run-regression.sh # CI 同款（含 Docker build）
 
 | 用途 | 账号 | 凭据 |
 |------|------|------|
-| Gate A Legacy | `123456` | 密码传 md5 `e10adc3949ba59abbe56e057f20f883e` |
+| Gate A Legacy | `Lincoln` | 密码传 md5 `e10adc3949ba59abbe56e057f20f883e`（明文 `123456`） |
 | Gate B Jira | `jira-test@example.com` | API Token `gate-b-test-token` |
 
 Fixture 脚本：`docker/jira/fixture-init.php`（写入演示组织、TST 项目、Jira 测试用户）。

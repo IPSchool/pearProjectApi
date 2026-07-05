@@ -8,7 +8,7 @@ import urllib.parse
 import urllib.request
 
 BASE = os.environ.get("GATE_A_BASE_URL", "http://127.0.0.1:8090").rstrip("/")
-ACCOUNT = os.environ.get("GATE_A_ACCOUNT", "123456")
+ACCOUNT = os.environ.get("GATE_A_ACCOUNT", "Lincoln")
 PASSWORD = os.environ.get("GATE_A_PASSWORD", "e10adc3949ba59abbe56e057f20f883e")
 
 passed = 0

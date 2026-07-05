@@ -16,7 +16,7 @@ class LegacyClient:
         password: str | None = None,
     ):
         self.base = (base or os.environ.get("GATE_A_BASE_URL", "http://127.0.0.1:8090")).rstrip("/")
-        self.account = account or os.environ.get("GATE_A_ACCOUNT", "123456")
+        self.account = account or os.environ.get("GATE_A_ACCOUNT", "Lincoln")
         self.password = password or os.environ.get("GATE_A_PASSWORD", "e10adc3949ba59abbe56e057f20f883e")
         self.token = ""
         self.org_code = ""

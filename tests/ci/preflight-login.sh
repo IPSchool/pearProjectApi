@@ -3,7 +3,7 @@
 set -euo pipefail
 
 BASE="${GATE_A_BASE_URL:-http://127.0.0.1:8090}"
-ACCOUNT="${GATE_A_ACCOUNT:-123456}"
+ACCOUNT="${GATE_A_ACCOUNT:-Lincoln}"
 PASSWORD="${GATE_A_PASSWORD:-e10adc3949ba59abbe56e057f20f883e}"
 
 echo "Preflight: POST ${BASE}/project/login/index"

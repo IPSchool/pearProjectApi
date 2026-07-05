@@ -23,7 +23,7 @@ bash tests/ci/run-regression.sh       # Docker 启动 + 全量（CI 同款）
 | 变量 | 默认 | 说明 |
 |------|------|------|
 | `GATE_A_BASE_URL` | `http://127.0.0.1:8090` | API Base URL |
-| `GATE_A_ACCOUNT` | `123456` | 演示账号 |
+| `GATE_A_ACCOUNT` | `Lincoln` | 演示账号 |
 | `GATE_A_PASSWORD` | `e10adc3949ba59abbe56e057f20f883e` | md5(123456) |
 
 ## 相关

@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 export GATE_A_BASE_URL="${GATE_A_BASE_URL:-http://127.0.0.1:8090}"
-export GATE_A_ACCOUNT="${GATE_A_ACCOUNT:-123456}"
+export GATE_A_ACCOUNT="${GATE_A_ACCOUNT:-Lincoln}"
 export GATE_A_PASSWORD="${GATE_A_PASSWORD:-e10adc3949ba59abbe56e057f20f883e}"
 
 fail=0

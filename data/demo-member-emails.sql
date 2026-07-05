@@ -1,7 +1,7 @@
 -- 演示账号邮箱更新（@dabaili.cn）
 -- 账号登录名不变，仅更新 pear_member / pear_member_account 的 email 字段
 
-UPDATE `pear_member` SET `email` = 'luyu@dabaili.cn' WHERE `account` = '123456';
+UPDATE `pear_member` SET `email` = 'luyu@dabaili.cn' WHERE `account` = 'Lincoln';
 UPDATE `pear_member` SET `email` = 'heitou@dabaili.cn' WHERE `account` = 'Alians';
 UPDATE `pear_member` SET `email` = 'shiziyu@dabaili.cn' WHERE `account` = 'Chihiro';
 UPDATE `pear_member` SET `email` = 'qiaozui@dabaili.cn' WHERE `account` = 'Json';
