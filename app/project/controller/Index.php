@@ -101,6 +101,7 @@ class Index extends BasicApi
             'miitbeian' => $config['miitbeian'],
             'site_copy' => $config['site_copy'],
             'site_name' => $config['site_name'],
+            'browser_icon' => $config['browser_icon'] ?? '',
         ];
         $this->success('', $info);
 

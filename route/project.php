@@ -32,6 +32,12 @@ $routes = [
     ['index/editPassword', 'Index', 'editPassword'],
     ['index/uploadImg', 'Index', 'uploadImg'],
     ['index/uploadAvatar', 'Index', 'uploadAvatar'],
+    // SystemSettings（实例级配置，拥有者专用）
+    ['systemSettings/schema', 'SystemSettings', 'schema'],
+    ['systemSettings/save', 'SystemSettings', 'save'],
+    ['systemSettings/testStorage', 'SystemSettings', 'testStorage'],
+    ['systemSettings/testLlm', 'SystemSettings', 'testLlm'],
+    ['systemSettings/testMail', 'SystemSettings', 'testMail'],
     // Project
     ['project/index', 'Project', 'index'],
     ['project/analysis', 'Project', 'analysis'],
@@ -57,6 +63,7 @@ $routes = [
     ['projectMember/_joinByInviteLink', 'ProjectMember', '_joinByInviteLink'],
     ['projectMember/inviteMember', 'ProjectMember', 'inviteMember'],
     ['projectMember/removeMember', 'ProjectMember', 'removeMember'],
+    ['projectMember/sendInviteEmail', 'ProjectMember', 'sendInviteEmail'],
     // Task
     ['task/index', 'Task', 'index'],
     ['task/dateTotalForProject', 'Task', 'dateTotalForProject'],
@@ -202,11 +209,13 @@ $routes = [
     ['inviteLink/_read', 'InviteLink', '_read'],
     // ProjectFeatures
     ['projectFeatures/index', 'ProjectFeatures', 'index'],
+    ['projectFeatures/ensureDefault', 'ProjectFeatures', 'ensureDefault'],
     ['projectFeatures/save', 'ProjectFeatures', 'save'],
     ['projectFeatures/edit', 'ProjectFeatures', 'edit'],
     ['projectFeatures/delete', 'ProjectFeatures', 'delete'],
     // ProjectVersion
     ['projectVersion/index', 'ProjectVersion', 'index'],
+    ['projectVersion/indexByProject', 'ProjectVersion', 'indexByProject'],
     ['projectVersion/save', 'ProjectVersion', 'save'],
     ['projectVersion/edit', 'ProjectVersion', 'edit'],
     ['projectVersion/read', 'ProjectVersion', 'read'],

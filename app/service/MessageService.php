@@ -6,6 +6,7 @@ require_once env('app_path') . 'common/Plugins/GateWayWorker/vendor/autoload.php
 require_once env('app_path') . 'common/Plugins/GateWayWorker/config.php';
 
 use GatewayWorker\Lib\Gateway;
+use think\facade\Config;
 
 /**
  * 消息推送服务
@@ -27,7 +28,9 @@ class MessageService
          *这里假设GatewayClient和Register服务都在一台服务器上，ip填写127.0.0.1
          *注意：ip不能是0.0.0.0
          **/
-        Gateway::$registerAddress = SERVER_ADDRESS . ':' . SERVER_PORT;
+        Gateway::$registerAddress = (string) Config::get('gateway.register_host', SERVER_ADDRESS)
+            . ':'
+            . (string) Config::get('gateway.register_port', SERVER_PORT);
     }
 
     public function isUidOnline($uid)

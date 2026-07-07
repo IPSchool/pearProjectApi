@@ -25,10 +25,11 @@ class File extends CommonModel
      */
     public static function createFile($projectCode, $data)
     {
-        $project = Project::where(['code' => $projectCode])->find();
+        $project = Project::resolveByRef($projectCode);
         if (!$project) {
             throw new \Exception('该项目已失效', 1);
         }
+        $projectCode = $project['code'];
         $memberCode = getCurrentMember()['code'];
         $orgCode = getCurrentOrganizationCode();
         $fileData = [

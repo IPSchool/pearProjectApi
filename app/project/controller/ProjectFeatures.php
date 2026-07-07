@@ -3,6 +3,7 @@
 namespace app\project\controller;
 
 use controller\BasicApi;
+use app\common\Model\Project;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\ModelNotFoundException;
 use think\Exception;
@@ -32,11 +33,15 @@ class ProjectFeatures extends BasicApi
     public function index()
     {
         $where = [];
-        $code = Request::post('projectCode');
-        if (!$code) {
+        $ref = Request::post('projectCode');
+        if (!$ref) {
             $this->error("请选择一个项目");
         }
-        $where[] = ['project_code', '=', $code];
+        $project = Project::resolveByRef($ref);
+        if (!$project) {
+            $this->error('该项目已失效');
+        }
+        $where[] = ['project_code', '=', $project['code']];
 //        $list = $this->model->_list($where, 'sort asc,id asc');
         $list = $this->model->where($where)->order('id desc')->select()->toArray();
         $this->success('', $list);
@@ -56,9 +61,44 @@ class ProjectFeatures extends BasicApi
         if (!$request::post('name')) {
             $this->error("请填写版本库名称");
         }
-        $result = $this->model->createData($data['name'], $data['description'], $data['projectCode'], getCurrentOrganizationCode());
+        $project = Project::resolveByRef($data['projectCode'] ?? '');
+        if (!$project) {
+            $this->error('该项目已失效');
+        }
+        $result = $this->model->createData(
+            $data['name'],
+            $data['description'],
+            $project['code'],
+            getCurrentOrganizationCode()
+        );
         if (!isError($result)) {
             $this->success('添加成功', $result);
+        }
+        $this->error($result['msg']);
+    }
+
+    /**
+     * 确保项目存在默认里程碑分组（Legacy features，UI 不再单独暴露）
+     */
+    public function ensureDefault()
+    {
+        $ref = Request::post('projectCode');
+        if (!$ref) {
+            $this->error('请选择一个项目');
+        }
+        $project = Project::resolveByRef($ref);
+        if (!$project) {
+            $this->error('该项目已失效');
+        }
+        $existing = $this->model->where(['project_code' => $project['code']])->order('id asc')->find();
+        if ($existing) {
+            $this->success('', $existing->toArray());
+            return;
+        }
+        $result = $this->model->createData('里程碑', '', $project['code'], getCurrentOrganizationCode());
+        if (!isError($result)) {
+            $this->success('', $result);
+            return;
         }
         $this->error($result['msg']);
     }

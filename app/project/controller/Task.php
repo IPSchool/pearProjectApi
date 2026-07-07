@@ -8,6 +8,7 @@ use app\common\Model\Project;
 use app\common\Model\ProjectLog;
 use app\common\Model\ProjectLogReaction;
 use app\jira\service\JiraIssueService;
+use app\common\Model\TaskMember;
 use app\common\Model\TaskTag;
 use app\common\Model\TaskToTag;
 use app\common\Model\TaskWorkTime;
@@ -17,6 +18,7 @@ use think\db\exception\DataNotFoundException;
 use think\db\exception\ModelNotFoundException;
 use think\exception\DbException;
 use think\facade\Request;
+use service\TaskResolutionService;
 
 /**
  */
@@ -61,15 +63,40 @@ class Task extends BasicApi
             $order = $params['order'];
         }
         $list = $this->model->_list($where, $order);
+        $memberCode = trim((string) Request::post('memberCode', ''));
+        if ($memberCode !== '' && !empty($list['list'])) {
+            $taskCodes = array_column($list['list'], 'code');
+            $participantTaskCodes = TaskMember::where('member_code', $memberCode)
+                ->whereIn('task_code', $taskCodes)
+                ->column('task_code');
+            $participantSet = array_flip($participantTaskCodes);
+            $filtered = [];
+            foreach ($list['list'] as $task) {
+                if (
+                    ($task['assign_to'] ?? '') === $memberCode
+                    || ($task['create_by'] ?? '') === $memberCode
+                    || isset($participantSet[$task['code']])
+                ) {
+                    $filtered[] = $task;
+                }
+            }
+            $list['list'] = $filtered;
+            $list['total'] = count($filtered);
+        }
         if ($list['list']) {
             foreach ($list['list'] as &$task) {
+                if ($task instanceof \think\Model) {
+                    $task = $task->toArray();
+                }
                 $task['executor'] = Member::where(['code' => $task['assign_to']])->field('name,avatar,code')->find();
                 if (!empty($task['create_by'])) {
                     $task['creator'] = Member::where(['code' => $task['create_by']])->field('name,avatar,code')->find();
                 } else {
                     $task['creator'] = null;
                 }
+                TaskResolutionService::normalizeTaskForApi($task);
             }
+            unset($task);
         }
         $this->success('', $list);
     }
@@ -300,6 +327,12 @@ class Task extends BasicApi
             }
             $data['project_code'] = $parentTask['project_code'];
             $data['stage_code'] = $parentTask['stage_code'];
+        } elseif (!empty($data['project_code'])) {
+            $project = Project::resolveByRef($data['project_code']);
+            if (!$project) {
+                $this->error('该项目已失效');
+            }
+            $data['project_code'] = $project['code'];
         }
         $result = $this->model->createTask($data['stage_code'], $data['project_code'], $data['name'], $member['code'], $data['assign_to'], $data['pcode']);
         if (!isError($result)) {
@@ -314,12 +347,16 @@ class Task extends BasicApi
      */
     public function taskDone(Request $request)
     {
-        $data = request_only('taskCode,done');
+        $data = request_only('taskCode,done,resolution');
         if (!$request::post('taskCode')) {
             $this->error("请选择任务");
         }
         try {
-            $result = $this->model->taskDone($data['taskCode'], $data['done']);
+            $result = $this->model->taskDone(
+                $data['taskCode'],
+                $data['done'],
+                $data['resolution'] ?? null
+            );
         } catch (Exception $e) {
             $this->error($e->getMessage(), $e->getCode());;
         }
@@ -465,7 +502,7 @@ class Task extends BasicApi
     public function edit(Request $request)
     {
         // 局部更新：只写入请求里实际提交的字段，避免 request_only 空默认值清空 description 等
-        $data = request_present_only('name,sort,end_time,begin_time,pri,description,work_time,status');
+        $data = request_present_only('name,sort,end_time,begin_time,pri,description,work_time,status,resolution');
         $code = $request::post('taskCode');
         if (!$code) {
             $this->error("请选择一个任务");

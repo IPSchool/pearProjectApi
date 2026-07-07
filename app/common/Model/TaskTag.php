@@ -26,10 +26,11 @@ class TaskTag extends CommonModel
         if (!$name) {
             return error(1, '请填写标签名称');
         }
-        $project = Project::where(['code' => $projectCode, 'deleted' => 0])->field('id')->find();
+        $project = Project::resolveByRef($projectCode);
         if (!$project) {
             return error(3, '该项目已失效');
         }
+        $projectCode = $project['code'];
         $tag = self::where(['name' => $name, 'project_code' => $projectCode])->find();
         if ($tag) {
             return error(2, '该标签已存在');

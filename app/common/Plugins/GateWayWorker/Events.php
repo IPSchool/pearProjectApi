@@ -1,70 +1,47 @@
 <?php
 /**
- * This file is part of workerman.
- *
- * Licensed under The MIT License
- * For full copyright and license information, please see the MIT-LICENSE.txt
- * Redistributions of files must retain the above copyright notice.
- *
- * @author walkor<walkor@workerman.net>
- * @copyright walkor<walkor@workerman.net>
- * @link http://www.workerman.net/
- * @license http://www.opensource.org/licenses/mit-license.php MIT License
+ * GatewayWorker 业务事件：客户端绑定 uid / 加入组织组
  */
-
-/**
- * 用于检测业务代码死循环或者长时间阻塞等问题
- * 如果发现业务卡死，可以将下面declare打开（去掉//注释），并执行php start.php reload
- * 然后观察一段时间workerman.log看是否有process_timeout异常
- */
-
-//declare(ticks=1);
 
 use GatewayWorker\Lib\Gateway;
 
-/**
- * 主逻辑
- * 主要是处理 onConnect onMessage onClose 三个方法
- * onConnect 和 onClose 如果不需要可以不用实现并删除
- */
 class Events
 {
-    /**
-     * 当客户端连接时触发
-     * 如果业务不需此回调可以删除onConnect
-     * @param int $client_id 连接id
-     * @throws Exception
-     */
     public static function onConnect($client_id)
     {
-        // 向所有人发送
-        //getAllUidCount
-        $data = ['action' => 'connect', 'data' => ['client_id' => $client_id, 'online' => Gateway::getAllClientCount()]];
-        Gateway::sendToAll(json_encode($data));
+        $data = [
+            'action' => 'connect',
+            'data' => [
+                'client_id' => $client_id,
+                'online' => Gateway::getAllClientCount(),
+            ],
+        ];
+        Gateway::sendToClient($client_id, json_encode($data, JSON_UNESCAPED_UNICODE));
     }
 
-    /**
-     * 当客户端发来消息时触发
-     * @param int $client_id 连接id
-     * @param mixed $message 具体消息
-     * @throws Exception
-     */
     public static function onMessage($client_id, $message)
     {
-        // 向所有人发送
-        $data = ['action' => 'onMessage', 'data' => ['client_id' => $client_id, 'msg' => "$client_id said $message\r\n"]];
-        Gateway::sendToAll(json_encode($data));
+        $payload = json_decode($message, true);
+        if (!is_array($payload)) {
+            return;
+        }
+
+        if (!empty($payload['uid'])) {
+            Gateway::bindUid($client_id, $payload['uid']);
+        }
+
+        $orgCode = $payload['organization_code'] ?? $payload['organizationCode'] ?? '';
+        if ($orgCode !== '') {
+            Gateway::joinGroup($client_id, $orgCode);
+        }
+
+        if (($payload['action'] ?? '') === 'ping') {
+            Gateway::sendToClient($client_id, json_encode(['action' => 'pong'], JSON_UNESCAPED_UNICODE));
+        }
     }
 
-    /**
-     * 当用户断开连接时触发
-     * @param int $client_id 连接id
-     * @throws Exception
-     */
     public static function onClose($client_id)
     {
-        // 向所有人发送
-        $data = ['action' => 'onClose', 'data' => ['client_id' => $client_id, 'online' => Gateway::getAllClientCount()]];
-        GateWay::sendToAll(json_encode($data));
+        // 连接关闭无需广播
     }
 }

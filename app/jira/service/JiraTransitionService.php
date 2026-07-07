@@ -4,6 +4,7 @@ namespace app\jira\service;
 
 use app\common\Model\Task;
 use app\common\Model\TaskStages;
+use service\TaskResolutionService;
 
 class JiraTransitionService
 {
@@ -53,7 +54,7 @@ class JiraTransitionService
     /**
      * @return array{ok: true}|array{ok: false, status: int, message?: string}
      */
-    public static function applyTransition(array $task, string $transitionId, string $memberCode): array
+    public static function applyTransition(array $task, string $transitionId, string $memberCode, ?string $resolution = null): array
     {
         $map = [
             '11' => ['stage' => 'To Do', 'done' => 0, 'status' => 0],
@@ -81,9 +82,11 @@ class JiraTransitionService
         if ($target['done']) {
             $update['done_time'] = nowTime();
             $update['done_by'] = $memberCode;
+            $update['resolution'] = TaskResolutionService::normalizeForClose($resolution ?? $task['resolution'] ?? null);
         } else {
             $update['done_time'] = null;
             $update['done_by'] = null;
+            $update['resolution'] = null;
         }
 
         Task::update($update, ['code' => $task['code']]);

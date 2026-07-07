@@ -4,6 +4,7 @@ namespace app\common\Model;
 
 use service\FileService;
 use service\RandomService;
+use service\TaskResolutionService;
 use service\ToolsService;
 
 /**
@@ -85,6 +86,9 @@ class TaskStages extends CommonModel
         if ($list) {
             $taskMemberList = [];
             foreach ($list as &$task) {
+                if ($task instanceof \think\Model) {
+                    $task = $task->toArray();
+                }
                 $assign_to = $task['assign_to'];
                 $task['executor'] = null;
                 if ($assign_to) {
@@ -95,7 +99,9 @@ class TaskStages extends CommonModel
                         $taskMemberList[$assign_to] = $task['executor'];
                     }
                 }
+                TaskResolutionService::normalizeTaskForApi($task);
             }
+            unset($task);
         }
         return $list;
     }

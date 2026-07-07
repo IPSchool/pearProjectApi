@@ -3,6 +3,7 @@
 namespace app\project\controller;
 
 use controller\BasicApi;
+use app\common\Model\Project;
 use think\facade\Request;
 
 /**
@@ -27,11 +28,15 @@ class TaskTag extends BasicApi
     public function index()
     {
         $where = [];
-        $code = Request::post('projectCode');
-        if (!$code) {
+        $ref = Request::post('projectCode');
+        if (!$ref) {
             $this->error("请选择一个项目");
         }
-        $where[] = ['project_code', '=', $code];
+        $project = Project::resolveByRef($ref);
+        if (!$project) {
+            $this->error('该项目已失效');
+        }
+        $where[] = ['project_code', '=', $project['code']];
 //        $list = $this->model->_list($where, 'sort asc,id asc');
         $list = $this->model->where($where)->order('name asc')->select()->toArray();
         $this->success('', $list);
@@ -51,7 +56,11 @@ class TaskTag extends BasicApi
         if (!$request::post('name')) {
             $this->error("请填写标签名称");
         }
-        $result = $this->model->createTag($data['name'], $data['color'], $data['projectCode']);
+        $project = Project::resolveByRef($data['projectCode'] ?? '');
+        if (!$project) {
+            $this->error('该项目已失效');
+        }
+        $result = $this->model->createTag($data['name'], $data['color'], $project['code']);
         if (!isError($result)) {
             $this->success('添加成功', $result);
         }

@@ -36,10 +36,16 @@ class IssueTransition
             return JiraResponse::badRequest(['transition' => 'Transition id is required']);
         }
 
+        $resolution = null;
+        if (isset($body['fields']['resolution']) && is_array($body['fields']['resolution'])) {
+            $resolution = $body['fields']['resolution']['name'] ?? $body['fields']['resolution']['id'] ?? null;
+        }
+
         $result = JiraTransitionService::applyTransition(
             $parsed['task'],
             $transitionId,
-            $request->jiraMember['code']
+            $request->jiraMember['code'],
+            is_string($resolution) ? $resolution : null
         );
         if (!$result['ok']) {
             return JiraResponse::json([

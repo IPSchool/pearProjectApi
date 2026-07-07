@@ -5,6 +5,7 @@ namespace app\jira\service;
 use app\common\Model\Project;
 use app\common\Model\Task;
 use app\common\Model\TaskStages;
+use service\TaskResolutionService;
 use think\facade\Db;
 
 class JiraIssueService
@@ -18,7 +19,7 @@ class JiraIssueService
 
         if (ctype_digit($issueIdOrKey)) {
             $task = Task::where(['id' => (int) $issueIdOrKey, 'deleted' => 0])
-                ->field('id,code,project_code,name,pri,execute_status,description,create_by,done_by,done_time,create_time,assign_to,deleted,stage_code,done,begin_time,end_time,pcode,sort,id_num,status')
+                ->field('id,code,project_code,name,pri,execute_status,description,create_by,done_by,done_time,create_time,assign_to,deleted,stage_code,done,begin_time,end_time,pcode,sort,id_num,status,resolution')
                 ->find();
             if (!$task) {
                 return null;
@@ -53,7 +54,7 @@ class JiraIssueService
             'project_code' => $project['code'],
             'id_num'       => $idNum,
             'deleted'      => 0,
-        ])->field('id,code,project_code,name,pri,execute_status,description,create_by,done_by,done_time,create_time,assign_to,deleted,stage_code,done,begin_time,end_time,pcode,sort,id_num,status')->find();
+        ])->field('id,code,project_code,name,pri,execute_status,description,create_by,done_by,done_time,create_time,assign_to,deleted,stage_code,done,begin_time,end_time,pcode,sort,id_num,status,resolution')->find();
         if (!$task) {
             return null;
         }
@@ -101,6 +102,7 @@ class JiraIssueService
                         'name'      => 'To Do',
                     ],
                 ],
+                'resolution' => TaskResolutionService::toJira($task['resolution'] ?? null),
             ],
         ];
     }

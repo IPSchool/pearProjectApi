@@ -16,6 +16,7 @@ Route::get('rest/api/latest/serverInfo', 'app\jira\controller\v2\ServerInfo@inde
 Route::get('rest/api/3/serverInfo', 'app\jira\controller\v2\ServerInfo@index');
 
 Route::get('rest/api/3/field', 'app\jira\controller\v3\Meta@fields')->middleware(JiraAuth::class);
+Route::get('rest/api/3/resolution', 'app\jira\controller\v3\Meta@resolutions')->middleware(JiraAuth::class);
 
 $issueKeyPattern = ['issueIdOrKey' => '[A-Za-z][A-Za-z0-9_]*-\d+|\d+'];
 

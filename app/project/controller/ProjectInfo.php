@@ -3,6 +3,7 @@
 namespace app\project\controller;
 
 use controller\BasicApi;
+use app\common\Model\Project;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\ModelNotFoundException;
 use think\Exception;
@@ -30,11 +31,15 @@ class ProjectInfo extends BasicApi
     public function index()
     {
         $where = [];
-        $code = Request::post('projectCode');
-        if (!$code) {
+        $ref = Request::post('projectCode');
+        if (!$ref) {
             $this->error("请选择一个项目");
         }
-        $where[] = ['project_code', '=', $code];
+        $project = Project::resolveByRef($ref);
+        if (!$project) {
+            $this->error('该项目已失效');
+        }
+        $where[] = ['project_code', '=', $project['code']];
 //        $list = $this->model->_list($where, 'sort asc,id asc');
         $list = $this->model->where($where)->order('id desc')->select()->toArray();
         $this->success('', $list);
@@ -54,7 +59,17 @@ class ProjectInfo extends BasicApi
         if (!$request::post('name')) {
             $this->error("请填写项目信息名称");
         }
-        $result = $this->model->createData($data['name'], $data['value'], $data['description'], $data['projectCode'], getCurrentOrganizationCode());
+        $project = Project::resolveByRef($data['projectCode'] ?? '');
+        if (!$project) {
+            $this->error('该项目已失效');
+        }
+        $result = $this->model->createData(
+            $data['name'],
+            $data['value'],
+            $data['description'],
+            $project['code'],
+            getCurrentOrganizationCode()
+        );
         if (!isError($result)) {
             $this->success('添加成功', $result);
         }

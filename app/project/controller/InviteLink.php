@@ -49,7 +49,11 @@ class InviteLink extends BasicApi
      */
     public function _read(Request $request)
     {
-        $info = \app\common\Model\InviteLink::getInviteDetail($request::post('inviteCode'));
+        try {
+            $info = \app\common\Model\InviteLink::getInviteDetail($request::post('inviteCode'));
+        } catch (\Exception $e) {
+            $this->error($e->getMessage());
+        }
         $this->success('', $info);
     }
 }

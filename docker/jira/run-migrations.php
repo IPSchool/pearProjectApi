@@ -82,3 +82,15 @@ migrate_ok("converted {$converted} table(s) with prefix {$prefix}");
 $schemaFile = $rootPath . 'data/2.9.0/hero-utf8mb4-schema.sql';
 run_sql_file($schemaFile);
 migrate_ok('hero-utf8mb4-schema.sql applied');
+
+$llmConfigFile = $rootPath . 'data/2.9.0/system-llm-config.sql';
+run_sql_file($llmConfigFile);
+migrate_ok('system-llm-config.sql applied');
+
+$resolutionFile = $rootPath . 'data/migrations/20260707_task_resolution.sql';
+run_sql_file($resolutionFile);
+migrate_ok('task-resolution migration applied');
+
+$resolutionSyncFile = $rootPath . 'data/migrations/20260707_task_resolution_sync.sql';
+run_sql_file($resolutionSyncFile);
+migrate_ok('task-resolution-sync migration applied');

@@ -3,8 +3,10 @@
 namespace app\project\controller;
 
 use app\common\Model\Member;
-use app\common\Model\ProjectLog;
+use app\common\Model\Project;
+use app\common\Model\ProjectFeatures;
 use app\common\Model\ProjectVersionLog;
+use app\common\Model\Task;
 use controller\BasicApi;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\ModelNotFoundException;
@@ -41,6 +43,52 @@ class ProjectVersion extends BasicApi
         }
         $where[] = ['features_code', '=', $code];
         $list = $this->model->where($where)->order('id asc')->select()->toArray();
+        $this->success('', $list);
+    }
+
+    /**
+     * 按项目列出全部里程碑（Fix Version），含工作项进度
+     */
+    public function indexByProject()
+    {
+        $ref = Request::post('projectCode');
+        if (!$ref) {
+            $this->error('请选择一个项目');
+        }
+        $project = Project::resolveByRef($ref);
+        if (!$project) {
+            $this->error('该项目已失效');
+        }
+        $featureCodes = ProjectFeatures::where(['project_code' => $project['code']])->column('code');
+        if (!$featureCodes) {
+            $this->success('', []);
+            return;
+        }
+        $list = $this->model->where('features_code', 'in', $featureCodes)
+            ->order('plan_publish_time desc,id desc')
+            ->select()
+            ->toArray();
+        foreach ($list as &$item) {
+            $tasks = Task::where(['version_code' => $item['code'], 'deleted' => 0])
+                ->field('code,status')
+                ->select()
+                ->toArray();
+            $total = count($tasks);
+            $done = 0;
+            foreach ($tasks as $t) {
+                if ((int) ($t['status'] ?? 0) === 1) {
+                    $done++;
+                }
+            }
+            $item['task_total'] = $total;
+            $item['task_done'] = $done;
+            if ($total > 0) {
+                $item['schedule'] = (int) round($done / $total * 100);
+            } else {
+                $item['schedule'] = (int) ($item['schedule'] ?? 0);
+            }
+        }
+        unset($item);
         $this->success('', $list);
     }
 

@@ -18,4 +18,5 @@ docker compose exec -T app php /app/docker/jira/run-migrations.php
 ## 历史文件
 
 - `20260707_utf8mb4_*.sql` — 已并入 `hero-utf8mb4-schema.sql`
+- `20260707_task_resolution.sql` — 新增 `pear_task.resolution`（Jira Resolution 对齐）
 - `2.9.0/task-description-utf8mb4.sql` — 已并入，保留空壳兼容旧引用

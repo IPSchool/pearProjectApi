@@ -6,7 +6,9 @@ use app\common\Model\InviteLink;
 use app\common\Model\Member;
 use app\common\Model\MemberAccount;
 use app\common\Model\Organization;
+use app\common\Model\Project;
 use controller\BasicApi;
+use service\MailService;
 use think\facade\Request;
 
 /**
@@ -22,29 +24,42 @@ class ProjectMember extends BasicApi
         }
     }
 
+    private function resolveProjectCode(string $ref): ?string
+    {
+        $project = Project::resolveByRef($ref);
+        return $project ? $project['code'] : null;
+    }
+
     /**
      * @throws \think\exception\DbException
      */
     public function index()
     {
-        $project_code = Request::post('projectCode');
+        $projectCode = $this->resolveProjectCode(trim(Request::post('projectCode', '')));
+        if (!$projectCode) {
+            $this->error('请先选择项目');
+        }
         $where = [];
-        $where[] = ['project_code', '=', $project_code];
+        $where[] = ['project_code', '=', $projectCode];
         $list = $this->model->_list($where, 'is_owner desc');
         if ($list['list']) {
             foreach ($list['list'] as &$item) {
+                if ($item instanceof \think\Model) {
+                    $item = $item->toArray();
+                }
                 $member = Member::where(['code' => $item['member_code']])->field('name,avatar,code,email')->find();
                 !$member && $member = [];
                 $member['is_owner'] = $item['is_owner'];
                 $item = $member;
             }
+            unset($item);
         }
         $this->success('', $list);
     }
 
     public function _listForInvite()
     {
-        $code = trim(Request::post('projectCode'));
+        $code = $this->resolveProjectCode(trim(Request::post('projectCode', '')));
         if (!$code) {
             $this->error('请先选择项目');
         }
@@ -59,43 +74,33 @@ class ProjectMember extends BasicApi
                 $item['avatar'] = $member['avatar'];
                 $item['name'] = $member['name'];
                 $item['email'] = $member['email'] ?? '未绑定邮箱';
-                $item['joined'] = false;
-                if ($has) {
-                    $item['joined'] = true;
-//                    $item['avatar'] = $has['avatar'];
-//                    $item['name'] = $has['name'];
-                }
-                $list[] = $item; //为了去重
+                $item['joined'] = (bool) $has;
+                $list[] = $item;
             }
         }
-        $this->success('', $list);//数组下标重置
+        $this->success('', $list);
     }
-
 
     /**
      * 邀请成员查询
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\ModelNotFoundException
-     * @throws \think\exception\DbException
      */
     public function searchInviteMember()
     {
         $keyword = trim(Request::post('keyword'));
-        $code = trim(Request::post('projectCode'));
+        $code = $this->resolveProjectCode(trim(Request::post('projectCode', '')));
         if (!$code) {
             $this->error('请先选择项目');
         }
-        $orgCode = getCurrentOrganizationCode();
         if (!$keyword) {
-            $this->success('');
+            $this->success('', []);
         }
-        $project = \app\common\Model\Project::where(['code' => $code])->field('id')->find();
-        //先找出项目所有成员
-//        $projectMemberIds = [];
+        $orgCode = getCurrentOrganizationCode();
         $projectMemberIds = $this->model->where([['project_code', '=', $code]])->column('member_code');
         $tempList = [];
-        //从当前组织的所有成员查询，判断是否已加入该项目，并存储已加入项目的成员的account_id
-        $memberAccountList = MemberAccount::where([['name', 'like', "%{$keyword}%"], ['organization_code', '=', $orgCode]])->select()->toArray();
+        $memberAccountList = MemberAccount::where([
+            ['name', 'like', "%{$keyword}%"],
+            ['organization_code', '=', $orgCode],
+        ])->select()->toArray();
         if ($memberAccountList) {
             foreach ($memberAccountList as $member) {
                 $item = [];
@@ -104,15 +109,10 @@ class ProjectMember extends BasicApi
                 $item['avatar'] = $member['avatar'];
                 $item['name'] = $member['name'];
                 $item['email'] = $member['email'] ?? '未绑定邮箱';
-                $item['joined'] = false;
-                if (in_array($member['member_code'], $projectMemberIds)) {
-                    $item['joined'] = true;
-                    $projectMemberIds[] = $member['member_code'];
-                }
-                $tempList[$item['memberCode']] = $item; //为了去重
+                $item['joined'] = in_array($member['member_code'], $projectMemberIds);
+                $tempList[$item['memberCode']] = $item;
             }
         }
-        //从平台查询
         $memberList = Member::where([['email', 'like', "%{$keyword}%"]])->select()->toArray();
         if ($memberList) {
             foreach ($memberList as $member) {
@@ -122,14 +122,11 @@ class ProjectMember extends BasicApi
                 $item['avatar'] = $member['avatar'];
                 $item['name'] = $member['name'];
                 $item['email'] = $member['email'] ?? '未绑定邮箱';
-                $item['joined'] = false;
-                if (in_array($item['memberCode'], $projectMemberIds)) {
-                    $item['joined'] = true;
-                }
-                $tempList[$item['memberCode']] = $item; //为了去重
+                $item['joined'] = in_array($item['memberCode'], $projectMemberIds);
+                $tempList[$item['memberCode']] = $item;
             }
         }
-        $this->success('', array_values($tempList));//数组下标重置
+        $this->success('', array_values($tempList));
     }
 
     /**
@@ -142,8 +139,9 @@ class ProjectMember extends BasicApi
         if (!$inviteLink || nowTime() >= $inviteLink['over_time']) {
             $this->error('该链接已失效');
         }
+        $project = null;
         if ($inviteLink['invite_type'] == 'project') {
-            $project = \app\common\Model\Project::where(['code' => $inviteLink['source_code']])->find();
+            $project = Project::where(['code' => $inviteLink['source_code']])->find();
             if (!$project) {
                 $this->error('该项目已失效');
             }
@@ -162,7 +160,9 @@ class ProjectMember extends BasicApi
                 if ($organization) {
                     $organizationList[] = $organization;
                 }
-                $item['organization_code'] == $project['organization_code'] && $currentOrganization = $organization;
+                if ($project && $item['organization_code'] == $project['organization_code']) {
+                    $currentOrganization = $organization;
+                }
             }
         }
         $this->success('', ['organizationList' => $organizationList, 'currentOrganization' => $currentOrganization]);
@@ -174,15 +174,46 @@ class ProjectMember extends BasicApi
     public function inviteMember()
     {
         $data = request_only('memberCode,projectCode');
-        if (!$data['memberCode'] || !$data['projectCode']) {
+        $projectCode = $this->resolveProjectCode(trim($data['projectCode'] ?? ''));
+        if (!$data['memberCode'] || !$projectCode) {
             $this->error('数据异常');
         }
         try {
-            $this->model->inviteMember($data['memberCode'], $data['projectCode']);
+            $this->model->inviteMember($data['memberCode'], $projectCode);
         } catch (\Exception $e) {
-            $this->error($e->getMessage(), $e->getCode());;
+            $this->error($e->getMessage(), $e->getCode());
         }
         $this->success('');
+    }
+
+    /**
+     * 发送项目邀请邮件（外部邮箱）
+     */
+    public function sendInviteEmail()
+    {
+        $email = trim(Request::post('email', ''));
+        $projectRef = trim(Request::post('projectCode', ''));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->error('请填写有效邮箱');
+        }
+        $project = Project::resolveByRef($projectRef);
+        if (!$project) {
+            $this->error('该项目已失效');
+        }
+        try {
+            $link = InviteLink::createInvite('project', $project['code']);
+            $inviteUrl = MailService::buildInviteUrl($link['code']);
+            $inviter = getCurrentMember()['name'] ?? '项目成员';
+            MailService::send(
+                $email,
+                $email,
+                '邀请你加入项目「' . $project['name'] . '」',
+                MailService::inviteProjectBody($project['name'], $inviter, $inviteUrl)
+            );
+        } catch (\Exception $e) {
+            $this->error($e->getMessage(), $e->getCode() ?: 1);
+        }
+        $this->success('邀请邮件已发送', ['inviteUrl' => $inviteUrl ?? '']);
     }
 
     /**
@@ -191,13 +222,14 @@ class ProjectMember extends BasicApi
     public function removeMember()
     {
         $data = request_only('memberCode,projectCode');
-        if (!$data['memberCode'] || !$data['projectCode']) {
+        $projectCode = $this->resolveProjectCode(trim($data['projectCode'] ?? ''));
+        if (!$data['memberCode'] || !$projectCode) {
             $this->error('数据异常');
         }
         try {
-            $this->model->removeMember($data['memberCode'], $data['projectCode']);
+            $this->model->removeMember($data['memberCode'], $projectCode);
         } catch (\Exception $e) {
-            $this->error($e->getMessage(), $e->getCode());;
+            $this->error($e->getMessage(), $e->getCode());
         }
         $this->success('');
     }

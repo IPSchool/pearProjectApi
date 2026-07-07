@@ -5,6 +5,8 @@ namespace app\common\Model;
 use Exception;
 use service\DateService;
 use service\RandomService;
+use service\RealtimePushService;
+use service\TaskResolutionService;
 use service\TaskStageStatusSyncService;
 use think\facade\Db;
 use think\db\exception\ModelNotFoundException;
@@ -17,7 +19,7 @@ use think\exception\DbException;
  */
 class Task extends CommonModel
 {
-    protected $append = ['priText', 'statusText', 'liked', 'stared', 'tags', 'childCount', 'hasUnDone', 'parentDone', 'hasComment', 'hasSource', 'canRead'];
+    protected $append = ['priText', 'statusText', 'resolutionText', 'liked', 'stared', 'tags', 'childCount', 'hasUnDone', 'parentDone', 'hasComment', 'hasSource', 'canRead'];
 
     public function read($code)
     {
@@ -61,8 +63,17 @@ class Task extends CommonModel
         } else {
             $task['issueKey'] = '';
         }
+        $versionCode = trim((string) ($task['version_code'] ?? ''));
+        if ($versionCode !== '' && $versionCode !== '0') {
+            $milestone = ProjectVersion::where(['code' => $versionCode])->field('code,name,status,plan_publish_time,publish_time')->find();
+            $task['milestone'] = $milestone ? $milestone->toArray() : null;
+        } else {
+            $task['milestone'] = null;
+        }
+        $row = $task->toArray();
+        TaskResolutionService::normalizeTaskForApi($row);
         //TODO 查看权限
-        return $task;
+        return $row;
     }
 
     /**
@@ -112,6 +123,27 @@ class Task extends CommonModel
                 $data['stage_code'] = $stageCode;
             }
             $data = array_merge($data, TaskStageStatusSyncService::applyStatusFields($status));
+            if ($status === TaskStageStatusSyncService::STATUS_DONE) {
+                if (!isset($data['resolution']) && empty($task['resolution'])) {
+                    $data['resolution'] = TaskResolutionService::DEFAULT_CLOSE;
+                }
+            } else {
+                $data['resolution'] = null;
+            }
+        }
+        if (isset($data['resolution'])) {
+            $resolution = TaskResolutionService::normalize($data['resolution']);
+            if ($resolution !== null && !TaskResolutionService::isValid($resolution)) {
+                throw new Exception('无效的解决方案', 400);
+            }
+            $willBeClosed = TaskResolutionService::isTaskClosed(array_merge($task->toArray(), $data));
+            if ($resolution !== null && !$willBeClosed) {
+                throw new Exception('未关闭的任务不能设置解决方案', 400);
+            }
+            if ($resolution === null && $willBeClosed && !isset($data['status'])) {
+                throw new Exception('已关闭任务需重新打开后才能清除解决方案', 400);
+            }
+            $data['resolution'] = $resolution;
         }
         $result = self::update($data, ['code' => $code]);
         $member = getCurrentMember();
@@ -130,6 +162,9 @@ class Task extends CommonModel
         }
         if (isset($data['status'])) {
             $type = 'status';
+        }
+        if (isset($data['resolution'])) {
+            $type = 'resolution';
         }
         if (isset($data['begin_time'])) {
             $type = 'setBeginTime';
@@ -369,10 +404,11 @@ class Task extends CommonModel
         if (!$stage) {
             return error(2, '该任务列表无效');
         }
-        $project = Project::where(['code' => $projectCode, 'deleted' => 0])->field('id,open_task_private')->find();
-        if (!$project) {
+        $project = Project::resolveByRef($projectCode);
+        if (!$project || (int) ($project['deleted'] ?? 0) !== 0) {
             return error(3, '该项目已失效');
         }
+        $projectCode = $project['code'];
         if ($parentCode) {
             $parentTask = self::where(['code' => $parentCode])->find();
             if (!$parentTask) {
@@ -461,12 +497,16 @@ class Task extends CommonModel
             Db::rollback();
             return error(9, $e->getMessage());
         }
-        return self::where(['code' => $result['code']])
+        $created = self::where(['code' => $result['code']])
             ->field('id,code,project_code,name,id_num')
             ->find();
+        if ($created) {
+            RealtimePushService::pushOrganizationTask($created['project_code']);
+        }
+        return $created;
     }
 
-    public function taskDone($taskCode, $done)
+    public function taskDone($taskCode, $done, $resolution = null)
     {
         if (!$taskCode) {
             throw new Exception('请选择任务', 1);
@@ -495,6 +535,11 @@ class Task extends CommonModel
                 ['done' => $done],
                 TaskStageStatusSyncService::applyStatusFields($syncStatus)
             );
+            if ($done) {
+                $update['resolution'] = TaskResolutionService::normalizeForClose($resolution ?? $task['resolution'] ?? null);
+            } else {
+                $update['resolution'] = null;
+            }
             if ($stageCode) {
                 $update['stage_code'] = $stageCode;
             }
@@ -512,6 +557,7 @@ class Task extends CommonModel
             $done ? $type = 'doneChild' : $type = 'redoChild';
             self::taskHook($member['code'], $task['pcode'], $type);
         }
+        RealtimePushService::pushOrganizationTask($task['project_code']);
         return $result;
     }
 
@@ -545,6 +591,7 @@ class Task extends CommonModel
             Db::rollback();
             throw new Exception($e->getMessage());
         }
+        RealtimePushService::pushOrganizationTask($task['project_code']);
         return $result;
     }
 
@@ -670,6 +717,7 @@ class Task extends CommonModel
                     }
                 }
                 $preTask->save();
+                RealtimePushService::pushOrganizationTask($preTask['project_code']);
             } else {
 //                小于安全值
                 $this->resetSort($preTask['stage_code'], $done);
@@ -985,6 +1033,11 @@ class Task extends CommonModel
         }
         $status = [0 => '未开始', 1 => '已完成', 2 => '进行中', 3 => '挂起', 4 => '测试中'];
         return $status[$data['status']];
+    }
+
+    public function getResolutionTextAttr($value, $data)
+    {
+        return TaskResolutionService::label($data['resolution'] ?? null);
     }
 
     /**

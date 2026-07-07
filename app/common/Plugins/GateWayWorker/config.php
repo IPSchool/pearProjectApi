@@ -1,7 +1,7 @@
 <?php
-define('SERVER_ADDRESS', '192.168.1.161');//服务注册地址，需为内网IP地址
-define('SERVER_PORT', '2346');//服务注册端口
-define('CLIENT_PORT', '2345');//客户端监听端口
+define('SERVER_ADDRESS', getenv('GW_SERVER_ADDRESS') ?: '127.0.0.1');//服务注册 / 监听地址
+define('SERVER_PORT', getenv('GW_SERVER_PORT') ?: '2346');//服务注册端口
+define('CLIENT_PORT', getenv('GW_CLIENT_PORT') ?: '2345');//客户端 WebSocket 端口
 
 //ssl配置 请使用绝对路径。不开启可以不用关注
 define('USE_SSL', false);//是否使用ssl

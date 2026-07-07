@@ -3,6 +3,7 @@
 namespace app\jira\controller\v3;
 
 use app\jira\service\JiraResponse;
+use service\TaskResolutionService;
 
 class Meta
 {
@@ -23,6 +24,18 @@ class Meta
                 'custom' => false,
                 'schema' => ['type' => 'status'],
             ],
+            [
+                'id'     => 'resolution',
+                'key'    => 'resolution',
+                'name'   => 'Resolution',
+                'custom' => false,
+                'schema' => ['type' => 'resolution'],
+            ],
         ]);
+    }
+
+    public function resolutions()
+    {
+        return JiraResponse::json(TaskResolutionService::jiraList());
     }
 }

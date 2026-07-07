@@ -54,6 +54,11 @@ fi
 chmod -R 777 runtime static/upload data 2>/dev/null || true
 chown -R www-data:www-data runtime static/upload data 2>/dev/null || true
 
+if [ "${PEAR_ROLE:-app}" = "gateway" ]; then
+  echo "[GateB] Starting GatewayWorker (WebSocket :2345)..."
+  exec bash /app/docker/jira/start-gateway.sh
+fi
+
 echo "[GateB] Starting php-fpm + nginx on :8090..."
 echo "[GateB] Jira API: http://127.0.0.1:8090/rest/api/3/"
 php-fpm -D

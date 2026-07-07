@@ -39,6 +39,9 @@ class Auth
         if (($parts[0] ?? '') === 'project' && ($parts[1] ?? '') === 'index' && ($parts[2] ?? '') === 'systemconfig') {
             return $next($request);
         }
+        if (($parts[0] ?? '') === 'project' && ($parts[1] ?? '') === 'inviteLink' && ($parts[2] ?? '') === '_read') {
+            return $next($request);
+        }
 
         $module = 'project';
         $controller = $request->controller() ?: ($parts[1] ?? '');

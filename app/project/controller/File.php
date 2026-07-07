@@ -3,6 +3,7 @@
 namespace app\project\controller;
 
 use app\common\Model\Member;
+use app\common\Model\Project;
 use controller\BasicApi;
 use service\FileService;
 use think\Exception;
@@ -31,14 +32,17 @@ class File extends BasicApi
     {
         $orgCode = getCurrentOrganizationCode();
         $memberCode = getCurrentMember()['code'];
-        $projectCode = Request::param('projectCode');
+        $projectRef = Request::param('projectCode');
         $deleted = Request::param('deleted', 0);
-        if (!$projectCode) {
+        if (!$projectRef) {
             $this->error("请选择项目");
         }
+        $project = Project::resolveByRef($projectRef);
+        if (!$project) {
+            $this->error('该项目已失效');
+        }
         $where = [];
-//        $where[] = ['organization_code', '=', $orgCode];
-        $where[] = ['project_code', '=', $projectCode];
+        $where[] = ['project_code', '=', $project['code']];
 //        $where[] = ['create_by', '=', $memberCode];
         $where[] = ['deleted', '=', $deleted];
         $list = $this->model->_list($where);
@@ -85,6 +89,11 @@ class File extends BasicApi
     {
         set_time_limit(0);
         $data = Request::post();
+        $project = Project::resolveByRef($data['projectCode'] ?? '');
+        if (!$project) {
+            $this->error('该项目已失效');
+        }
+        $projectCode = $project['code'];
         $fileName = $data['identifier'];
         $orgFileName = $data['filename'];
         $chunkNumber = $data['chunkNumber'];
@@ -144,7 +153,7 @@ class File extends BasicApi
             $fileData['title'] = FileService::removeSuffix($data['filename']);
             $fileData['size'] = $data['totalSize'];
             !isset($data['taskCode']) && $data['taskCode'] = '';
-            $fileResult = \app\common\Model\File::createFile($data['projectCode'], $fileData);
+            $fileResult = \app\common\Model\File::createFile($projectCode, $fileData);
 
             unset($info);
             //文件碎片移除
@@ -155,11 +164,11 @@ class File extends BasicApi
             if ($data['taskCode']) {
                 \app\common\Model\SourceLink::createSource('file', $fileResult['code'], 'task', $data['taskCode']);
             }
-            \app\common\Model\Project::projectHook(getCurrentMember()['code'],  $data['projectCode'], 'uploadFile','',0,'','',$fileResult['code'],['title' => $fileInfo['fullName'], 'url' => $fileResult['file_url']]);
+            \app\common\Model\Project::projectHook(getCurrentMember()['code'], $projectCode, 'uploadFile','',0,'','',$fileResult['code'],['title' => $fileInfo['fullName'], 'url' => $fileResult['file_url']]);
         }
 
-        $project = \app\common\Model\Project::where(['code' => $data['projectCode']])->find();
-        $result['projectName'] = $project['name'];
+        $projectRow = \app\common\Model\Project::where(['code' => $projectCode])->find();
+        $result['projectName'] = $projectRow['name'] ?? '';
         $this->success('', $result);
     }
 

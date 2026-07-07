@@ -9,7 +9,7 @@ RUN apt-get update \
     libwebp-dev libjpeg-dev libpng-dev libfreetype6-dev libjpeg62-turbo-dev \
     libzip-dev wget curl git unzip \
   && docker-php-ext-configure gd --with-freetype --with-jpeg \
-  && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql zip \
+  && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql zip pcntl \
   && pecl install redis igbinary \
   && docker-php-ext-enable redis igbinary \
   && rm -rf /var/lib/apt/lists/*

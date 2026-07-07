@@ -54,5 +54,23 @@ services:
       redis:
         condition: service_started
 
+  gateway:
+    build:
+      context: ..
+      dockerfile: jira/Dockerfile
+      args:
+        PHP_BASE: ${PHP_BASE:-php:8.2-fpm}
+    image: jira-app
+    entrypoint: ["/bin/bash", "/app/docker/jira/start-gateway.sh"]
+    ports:
+      - "2345:2345"
+    volumes:
+      - ../../:/app
+      - ./.env.docker:/docker-env/.env.docker:ro
+    environment:
+      GW_SERVER_ADDRESS: "0.0.0.0"
+    depends_on:
+      - app
+
 volumes:
   jira_mysql_data:
