@@ -5,6 +5,7 @@ namespace app\common\Model;
 use Exception;
 use service\DateService;
 use service\RandomService;
+use service\TaskStageStatusSyncService;
 use think\facade\Db;
 use think\db\exception\ModelNotFoundException;
 use think\exception\DbException;
@@ -27,11 +28,15 @@ class Task extends CommonModel
         if (!$task) {
             throw new Exception('该任务已失效', 404);
         }
-        $project = Project::where(['code' => $task['project_code']])->field('name,open_begin_time')->find();
+        $project = Project::where(['code' => $task['project_code']])->field('id,name,open_begin_time,prefix,open_prefix')->find();
         $stage = TaskStages::where(['code' => $task['stage_code']])->field('name')->find();
         $task['executor'] = null;
         if ($task['assign_to']) {
             $task['executor'] = Member::where(['code' => $task['assign_to']])->field('name,code,avatar')->find();
+        }
+        $task['creator'] = null;
+        if (!empty($task['create_by'])) {
+            $task['creator'] = Member::where(['code' => $task['create_by']])->field('name,code,avatar')->find();
         }
         if ($task['pcode']) {
             $task['parentTask'] = self::where(['code' => $task['pcode']])->withoutField('id')->find();
@@ -50,6 +55,12 @@ class Task extends CommonModel
         $task['openBeginTime'] = $project['open_begin_time'];
         $task['projectName'] = $project['name'];
         $task['stageName'] = $stage['name'];
+        $task['project_id'] = $project['id'];
+        if (!empty($project['open_prefix']) && !empty($project['prefix']) && !empty($task['id_num'])) {
+            $task['issueKey'] = strtoupper($project['prefix']) . '-' . $task['id_num'];
+        } else {
+            $task['issueKey'] = '';
+        }
         //TODO 查看权限
         return $task;
     }
@@ -94,6 +105,14 @@ class Task extends CommonModel
         if (isset($data['description']) && $data['description'] == '<p><br></p>') {
             $data['description'] = "";
         }
+        if (isset($data['status'])) {
+            $status = (int)$data['status'];
+            $stageCode = TaskStageStatusSyncService::findStageForStatus($task['project_code'], $status);
+            if ($stageCode && $stageCode !== $task['stage_code']) {
+                $data['stage_code'] = $stageCode;
+            }
+            $data = array_merge($data, TaskStageStatusSyncService::applyStatusFields($status));
+        }
         $result = self::update($data, ['code' => $code]);
         $member = getCurrentMember();
         $type = '';
@@ -130,6 +149,125 @@ class Task extends CommonModel
         $type && self::taskHook($member['code'], $code, $type);
         //TODO 任务动态
         return $result;
+    }
+
+    /**
+     * 设置或清除任务的父项
+     * @param string $taskCode
+     * @param string $parentCode 空字符串表示清除父项
+     * @return bool
+     * @throws DbException
+     */
+    public function setParent($taskCode, $parentCode = '')
+    {
+        if (!$taskCode) {
+            throw new Exception('请选择任务', 1);
+        }
+        $task = self::where(['code' => $taskCode, 'deleted' => 0])->find();
+        if (!$task) {
+            throw new Exception('该任务在回收站中无法编辑', 2);
+        }
+        $parentCode = $parentCode ?: '';
+        if ($parentCode === (string)($task['pcode'] ?? '')) {
+            return true;
+        }
+
+        $logType = 'clearParent';
+        $logData = [];
+        $update = ['pcode' => '', 'path' => ''];
+        $newPath = '';
+
+        if ($parentCode) {
+            if ($parentCode === $taskCode) {
+                throw new Exception('不能将任务设为自己的父项', 3);
+            }
+            $parentTask = self::where(['code' => $parentCode, 'deleted' => 0])->find();
+            if (!$parentTask) {
+                throw new Exception('父任务无效', 4);
+            }
+            if ($parentTask['project_code'] !== $task['project_code']) {
+                throw new Exception('父任务须在同一项目中', 5);
+            }
+            if ($parentTask['done']) {
+                throw new Exception('父任务已完成，无法添加子任务', 6);
+            }
+            if (self::isDescendantOf($parentCode, $taskCode)) {
+                throw new Exception('不能将子任务设为父项', 7);
+            }
+            $newPath = self::buildTaskPath($parentCode);
+            $update = [
+                'pcode' => $parentCode,
+                'path' => $newPath,
+                'stage_code' => $parentTask['stage_code'],
+            ];
+            $logType = 'setParent';
+            $logData = ['parentName' => $parentTask['name']];
+        } else {
+            if (!empty($task['pcode'])) {
+                $oldParent = self::where(['code' => $task['pcode']])->field('name')->find();
+                $logData = ['parentName' => $oldParent ? $oldParent['name'] : ''];
+            }
+        }
+
+        Db::startTrans();
+        try {
+            self::update($update, ['code' => $taskCode]);
+            self::refreshDescendantPaths($taskCode, $newPath);
+            Db::commit();
+        } catch (Exception $e) {
+            Db::rollback();
+            throw $e;
+        }
+
+        $member = getCurrentMember();
+        self::taskHook($member['code'], $taskCode, $logType, '', 0, '', '', '', $logData);
+        return true;
+    }
+
+    private static function buildTaskPath(string $parentCode): string
+    {
+        if (!$parentCode) {
+            return '';
+        }
+        $parent = self::where(['code' => $parentCode])->field('code,path')->find();
+        if (!$parent) {
+            return '';
+        }
+        $suffix = !empty($parent['path']) ? ',' . $parent['path'] : '';
+        return $parent['code'] . $suffix;
+    }
+
+    /** 候选父任务是否为 $ancestorCode 的子孙（含自身） */
+    private static function isDescendantOf(string $candidateCode, string $ancestorCode): bool
+    {
+        $current = $candidateCode;
+        $seen = [];
+        while ($current) {
+            if ($current === $ancestorCode) {
+                return true;
+            }
+            if (isset($seen[$current])) {
+                break;
+            }
+            $seen[$current] = true;
+            $row = self::where(['code' => $current])->field('pcode')->find();
+            if (!$row || empty($row['pcode'])) {
+                return false;
+            }
+            $current = $row['pcode'];
+        }
+        return false;
+    }
+
+    private static function refreshDescendantPaths(string $taskCode, string $taskPath): void
+    {
+        $children = self::where(['pcode' => $taskCode])->field('code')->select();
+        foreach ($children as $child) {
+            $childCode = $child['code'];
+            $childPath = $taskCode . ($taskPath !== '' ? ',' . $taskPath : '');
+            self::update(['path' => $childPath], ['code' => $childCode]);
+            self::refreshDescendantPaths($childCode, $childPath);
+        }
     }
 
     public function taskSources($code)
@@ -349,7 +487,18 @@ class Task extends CommonModel
 
         Db::startTrans();
         try {
-            $result = self::update(['done' => $done], ['code' => $taskCode]);
+            $syncStatus = $done
+                ? TaskStageStatusSyncService::STATUS_DONE
+                : TaskStageStatusSyncService::STATUS_TODO;
+            $stageCode = TaskStageStatusSyncService::findStageForStatus($task['project_code'], $syncStatus);
+            $update = array_merge(
+                ['done' => $done],
+                TaskStageStatusSyncService::applyStatusFields($syncStatus)
+            );
+            if ($stageCode) {
+                $update['stage_code'] = $stageCode;
+            }
+            $result = self::update($update, ['code' => $taskCode]);
             //todo 添加任务动态，编辑权限检测
             Db::commit();
         } catch (Exception $e) {
@@ -431,19 +580,49 @@ class Task extends CommonModel
         if (!$task) {
             throw new Exception('任务已失效', 2);
         }
-//        $data = [
-//            'member_code' => getCurrentMember()['code'],
-//            'source_code' => $taskCode,
-//            'action_type' => 'task',
-//            'code' => createUniqueCode('projectLog'),
-//            'create_time' => nowTime(),
-//            'is_comment' => 1,
-//            'content' => $comment,
-//            'type' => 'comment'
-//        ];
-        self::taskHook(getCurrentMember()['code'], $taskCode, 'comment', '', 1, '', $comment, '', $mentions);
-        return true;
-//        return ProjectLog::create($data);
+        $comment = trim((string)$comment);
+        if ($comment === '') {
+            throw new Exception('请填写评论', 3);
+        }
+        $logData = [
+            'member_code' => getCurrentMember()['code'],
+            'source_code' => $taskCode,
+            'project_code' => $task['project_code'],
+            'action_type' => 'task',
+            'code' => createUniqueCode('projectLog'),
+            'create_time' => nowTime(),
+            'is_comment' => 1,
+            'content' => $comment,
+            'remark' => $comment,
+            'type' => 'comment',
+            'icon' => 'file-text',
+        ];
+        // mentions 通知在 TP6 迁移后暂未恢复，先落库评论
+        return (bool)ProjectLog::create($logData);
+    }
+
+    /**
+     * @param $logCode
+     * @return bool
+     * @throws DataNotFoundException
+     * @throws DbException
+     * @throws ModelNotFoundException
+     */
+    public function deleteComment($logCode)
+    {
+        if (!$logCode) {
+            throw new Exception('请选择评论', 1);
+        }
+        $member = getCurrentMember();
+        $log = ProjectLog::where(['code' => $logCode, 'is_comment' => 1])->find();
+        if (!$log) {
+            throw new Exception('评论不存在', 2);
+        }
+        if ($log['member_code'] !== $member['code']) {
+            throw new Exception('无权删除该评论', 3);
+        }
+        ProjectLogReaction::where(['log_code' => $logCode])->delete();
+        return (bool)ProjectLog::where(['code' => $logCode])->delete();
     }
 
     /**
@@ -458,7 +637,7 @@ class Task extends CommonModel
      */
     public function sort($preCode, $nextCode, $toStageCode)
     {
-        $preTask = self::where(['code' => $preCode])->field('sort,stage_code,done')->find();
+        $preTask = self::where(['code' => $preCode])->field('sort,stage_code,done,project_code')->find();
         if ($preCode == $nextCode) {
             return false;
         }
@@ -474,8 +653,22 @@ class Task extends CommonModel
                 $newSort = $maxSort + 65536;
             }
             if ($newSort and $newSort > 50) {
+                $oldStageCode = $preTask['stage_code'];
                 $preTask->stage_code = $toStageCode;
                 $preTask->sort = $newSort;
+                if ($oldStageCode !== $toStageCode) {
+                    $stage = TaskStages::where(['code' => $toStageCode])->field('name')->find();
+                    if ($stage) {
+                        $status = TaskStageStatusSyncService::resolveStatusFromStage(
+                            $preTask['project_code'],
+                            $toStageCode,
+                            $stage['name']
+                        );
+                        $fields = TaskStageStatusSyncService::applyStatusFields($status);
+                        $preTask->status = $fields['status'];
+                        $preTask->done = $fields['done'];
+                    }
+                }
                 $preTask->save();
             } else {
 //                小于安全值
@@ -549,27 +742,41 @@ class Task extends CommonModel
             $page = 1;
         }
         $offset = ($page - 1) * $pageSize;
-        $limit = $pageSize;
+        $limit = (int)$pageSize;
         $prefix = config('database.prefix');
         $doneSql = '';
         if ($done != -1) {
-            $doneSql = " and t.done = {$done}";
+            $doneSql = ' AND t.done = ' . (int)$done;
         }
-        //我执行的
+        $memberCode = addslashes($memberCode);
+
+        // 显式字段，避免 task JOIN project 时 select * 列名冲突覆盖任务 name/code
+        $fields = 't.id, t.code, t.name, t.project_code, t.stage_code, t.pri, t.status, t.done, '
+            . 't.assign_to, t.create_by, t.create_time, t.end_time, t.begin_time, t.id_num, '
+            . 'p.id AS project_id, p.prefix AS project_prefix, p.open_prefix AS project_open_prefix, '
+            . 'p.name AS projectName, ts.name AS stageName';
+
+        $from = " FROM {$prefix}task AS t"
+            . " INNER JOIN {$prefix}project AS p ON t.project_code = p.code AND p.deleted = 0"
+            . " LEFT JOIN {$prefix}task_stages AS ts ON ts.code = t.stage_code"
+            . " WHERE t.deleted = 0{$doneSql}";
+
         if ($taskType == 1) {
-            $sql = "select *,t.id as id,t.name as name,t.code as code,t.create_time as create_time,t.end_time,t.begin_time from {$prefix}task as t join {$prefix}project as p on t.project_code = p.code where  t.deleted = 0 {$doneSql} and t.assign_to = '{$memberCode}' and p.deleted = 0 order by t.id desc";
+            $from .= " AND t.assign_to = '{$memberCode}'";
+        } elseif ($taskType == 2) {
+            $from .= " AND EXISTS (SELECT 1 FROM {$prefix}task_member AS tm"
+                . " WHERE tm.task_code = t.code AND tm.member_code = '{$memberCode}')";
+        } elseif ($taskType == 3) {
+            $from .= " AND t.create_by = '{$memberCode}'";
+        } else {
+            $from .= " AND t.assign_to = '{$memberCode}'";
         }
-        //我参与的
-        if ($taskType == 2) {
-            $sql = "select *,t.id as id,t.name as name,t.code as code,t.create_time as create_time,t.end_time,t.begin_time from {$prefix}task as t join {$prefix}project as p on t.project_code = p.code left join {$prefix}task_member as tm on tm.task_code = t.code where  t.deleted = 0 {$doneSql} and tm.member_code = '{$memberCode}' and p.deleted = 0 order by t.id desc";
-        }
-        //我创建的
-        if ($taskType == 3) {
-            $sql = "select *,t.id as id,t.name as name,t.code as code,t.create_time as create_time,t.end_time,t.begin_time from {$prefix}task as t join {$prefix}project as p on t.project_code = p.code where  t.deleted = 0 {$doneSql} and t.create_by = '{$memberCode}' and p.deleted = 0 order by t.id desc";
-        }
-        $total = Db::query($sql);
-        $total = count($total);
-        $sql .= " limit {$offset},{$limit}";
+
+        $countSql = 'SELECT COUNT(DISTINCT t.id) AS cnt' . $from;
+        $totalRow = Db::query($countSql);
+        $total = (int)($totalRow[0]['cnt'] ?? 0);
+
+        $sql = 'SELECT DISTINCT ' . $fields . $from . " ORDER BY t.id DESC LIMIT {$offset}, {$limit}";
         $list = Db::query($sql);
         return ['list' => $list, 'total' => $total];
     }
@@ -918,6 +1125,182 @@ class Task extends CommonModel
      */
     public static function taskHook($memberCode, $taskCode, $type = 'create', $toMemberCode = '', $isComment = 0, $remark = '', $content = '', $fileCode = '', $data = [], $tag = 'task')
     {
-        // TP6 已移除 Hook 行为；Gate B Jira API 不依赖任务钩子
+        if ((int)$isComment === 1 || !$memberCode || !$taskCode) {
+            return;
+        }
+        $task = self::where(['code' => $taskCode])->find();
+        if (!$task) {
+            return;
+        }
+        if (!is_array($data)) {
+            $data = [];
+        }
+        if (!$remark) {
+            $remark = self::buildTaskLogRemark($type, $task, (string)$toMemberCode, $data);
+        }
+        if ($content === '' || $content === null) {
+            $content = self::buildTaskLogContent($type, $task, $data);
+        }
+        ProjectLog::create([
+            'member_code' => $memberCode,
+            'source_code' => $taskCode,
+            'project_code' => $task['project_code'],
+            'action_type' => $tag,
+            'code' => createUniqueCode('projectLog'),
+            'create_time' => nowTime(),
+            'is_comment' => 0,
+            'content' => $content,
+            'remark' => $remark,
+            'type' => $type,
+            'icon' => self::taskLogIcon($type),
+            'to_member_code' => $toMemberCode ?: '',
+        ]);
+    }
+
+    private static function resolveMemberName($memberCode): string
+    {
+        if (!$memberCode) {
+            return '';
+        }
+        $member = Member::where(['code' => $memberCode])->field('name')->find();
+        return $member ? (string)$member['name'] : '';
+    }
+
+    private static function formatTaskDateTime(?string $time): string
+    {
+        if (!$time) {
+            return '';
+        }
+        $ts = strtotime($time);
+        if ($ts === false) {
+            return $time;
+        }
+        return date('n月j日 H:i', $ts);
+    }
+
+    private static function priLabel(int $pri): string
+    {
+        $map = [0 => '普通', 1 => '紧急', 2 => '非常紧急'];
+        return $map[$pri] ?? (string)$pri;
+    }
+
+    private static function statusLabel(int $status): string
+    {
+        $map = [0 => '未开始', 1 => '已完成', 2 => '进行中', 3 => '挂起', 4 => '测试中'];
+        return $map[$status] ?? (string)$status;
+    }
+
+    private static function taskLogIcon(string $type): string
+    {
+        $map = [
+            'create' => 'plus',
+            'createChild' => 'plus',
+            'name' => 'edit',
+            'content' => 'file-text',
+            'clearContent' => 'file-text',
+            'pri' => 'flag',
+            'status' => 'swap',
+            'setBeginTime' => 'calendar',
+            'clearBeginTime' => 'calendar',
+            'setEndTime' => 'calendar',
+            'clearEndTime' => 'calendar',
+            'setWorkTime' => 'clock-circle',
+            'done' => 'check',
+            'redo' => 'undo',
+            'doneChild' => 'bars',
+            'redoChild' => 'bars',
+            'assign' => 'user',
+            'claim' => 'user',
+            'removeExecutor' => 'user-delete',
+            'inviteMember' => 'user-add',
+            'removeMember' => 'user-delete',
+            'move' => 'drag',
+            'recycle' => 'delete',
+            'recovery' => 'rollback',
+            'linkFile' => 'link',
+            'unlinkFile' => 'disconnect',
+            'setParent' => 'link',
+            'clearParent' => 'disconnect',
+        ];
+        return $map[$type] ?? 'edit';
+    }
+
+    private static function buildTaskLogRemark(string $type, $task, string $toMemberCode, array $data): string
+    {
+        $memberName = self::resolveMemberName($toMemberCode);
+        switch ($type) {
+            case 'create':
+                return '创建了任务';
+            case 'createChild':
+                $taskName = $data['taskName'] ?? '';
+                return $taskName ? "创建了子任务 {$taskName}" : '创建了子任务';
+            case 'name':
+                return '更新了内容';
+            case 'content':
+                return '更新了备注';
+            case 'clearContent':
+                return '清除了备注';
+            case 'pri':
+                return '更新了优先级为 ' . self::priLabel((int)($task['pri'] ?? 0));
+            case 'status':
+                return '更新了状态为 ' . self::statusLabel((int)($task['status'] ?? 0));
+            case 'setBeginTime':
+                return '更新开始时间为 ' . self::formatTaskDateTime($task['begin_time'] ?? '');
+            case 'clearBeginTime':
+                return '清除了开始时间';
+            case 'setEndTime':
+                return '更新截止时间为 ' . self::formatTaskDateTime($task['end_time'] ?? '');
+            case 'clearEndTime':
+                return '清除了截止时间';
+            case 'setWorkTime':
+                return '更新了预估工时';
+            case 'done':
+                return '完成了任务';
+            case 'redo':
+                return '重做了任务';
+            case 'doneChild':
+                return '完成了子任务';
+            case 'redoChild':
+                return '重做了子任务';
+            case 'assign':
+                return '指派给了 ' . $memberName;
+            case 'claim':
+                return '认领了任务';
+            case 'removeExecutor':
+                return '移除了执行者 ' . $memberName;
+            case 'inviteMember':
+                return '添加了参与者 ' . $memberName;
+            case 'removeMember':
+                return '移除了参与者 ' . $memberName;
+            case 'move':
+                $stageName = $data['stageName'] ?? '';
+                return $stageName ? "移动到 {$stageName}" : '移动了任务';
+            case 'recycle':
+                return '移入了回收站';
+            case 'recovery':
+                return '从回收站恢复';
+            case 'linkFile':
+                $title = $data['title'] ?? '';
+                return $title ? "关联了文件 {$title}" : '关联了文件';
+            case 'unlinkFile':
+                $title = $data['title'] ?? '';
+                return $title ? "取消关联文件 {$title}" : '取消关联文件';
+            case 'setParent':
+                $parentName = $data['parentName'] ?? '';
+                return $parentName ? "设置父项为 {$parentName}" : '设置了父项';
+            case 'clearParent':
+                $parentName = $data['parentName'] ?? '';
+                return $parentName ? "移除了父项 {$parentName}" : '移除了父项';
+            default:
+                return '更新了任务';
+        }
+    }
+
+    private static function buildTaskLogContent(string $type, $task, array $data): string
+    {
+        if ($type === 'name') {
+            return (string)($task['name'] ?? '');
+        }
+        return '';
     }
 }

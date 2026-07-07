@@ -5,6 +5,7 @@
 *.svn
 *.git
 .env
+.venv/
 /runtime
 /log
 /vendor

@@ -12,6 +12,9 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_general_ci
       - --sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+      - --innodb-file-format=Barracuda
+      - --innodb-large-prefix=1
+      - --innodb-default-row-format=DYNAMIC
     volumes:
       - jira_mysql_data:/var/lib/mysql
       - ../../data/pearproject.sql:/docker-entrypoint-initdb.d/01-pearproject.sql:ro

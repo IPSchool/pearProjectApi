@@ -1,0 +1,2 @@
+-- 已合并至 ../2.9.0/hero-utf8mb4-schema.sql
+-- 请使用 docker/jira/run-migrations.php

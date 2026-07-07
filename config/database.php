@@ -13,7 +13,9 @@ return [
             'username'        => env('database.username', 'root'),
             'password'        => env('database.password', 'root'),
             'hostport'        => env('database.hostport', '3306'),
-            'params'          => [],
+            'params'          => [
+                \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci',
+            ],
             'charset'         => env('database.charset', 'utf8mb4'),
             'prefix'          => env('database.prefix', 'pear_'),
             'deploy'          => 0,

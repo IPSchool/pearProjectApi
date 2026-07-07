@@ -89,6 +89,30 @@ class FileService
         throw new \think\Exception('未设置存储方式，无法获取到文件对应URL地址');
     }
 
+    /** 系统默认成员头像（相对站点根路径） */
+    public static function defaultMemberAvatarPath(): string
+    {
+        return 'static/assets/system/default-avatar.png';
+    }
+
+    /** 系统默认项目封面（相对站点根路径） */
+    public static function defaultProjectCoverPath(): string
+    {
+        return 'static/assets/system/default-project-cover.jpg';
+    }
+
+    /** 新成员未上传头像时的默认 URL */
+    public static function getDefaultMemberAvatarUrl(): string
+    {
+        return self::getFilePrefix() . self::defaultMemberAvatarPath();
+    }
+
+    /** 新项目未设置封面时的默认 URL */
+    public static function getDefaultProjectCoverUrl(): string
+    {
+        return self::getFilePrefix() . self::defaultProjectCoverPath();
+    }
+
     /**
      * 获取文件当前URL地址
      * @param string $filename 文件HASH名称

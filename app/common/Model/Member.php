@@ -4,6 +4,7 @@ namespace app\common\Model;
 
 use Exception;
 use PDOStatement;
+use service\FileService;
 use service\JwtService;
 use service\NodeService;
 use service\RandomService;
@@ -139,7 +140,7 @@ class Member extends CommonModel
     {
         //需要创建的信息。1、用户 2、用户所属组织 3、组织权限 4、所属组织账号
         $memberData['create_time'] = nowTime();
-        (!isset($memberData['avatar']) || !$memberData['avatar']) && $memberData['avatar'] = 'https://static.vilson.online/cover.png';
+        (!isset($memberData['avatar']) || !$memberData['avatar']) && $memberData['avatar'] = FileService::getDefaultMemberAvatarUrl();
         !isset($memberData['status']) && $memberData['status'] = 1;
         !isset($memberData['code']) && $memberData['code'] = createUniqueCode('member');
         !isset($memberData['account']) && $memberData['account'] = RandomService::alnumLowercase();

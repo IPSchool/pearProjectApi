@@ -95,7 +95,7 @@ if (!$project) {
         'private'             => 0,
         'access_control_type' => 'open',
         'task_board_theme'    => 'default',
-        'cover'               => 'http://easyproject.net/static/image/default/project-cover.png',
+        'cover'               => \service\FileService::getDefaultProjectCoverUrl(),
     ]);
     echo "[GateB] Created project id={$project['id']} code={$project['code']} key={$projectKey}\n";
 
@@ -137,6 +137,12 @@ try {
     echo "[GateB] Upserted Jira API token for {$email}\n";
 } catch (\Throwable $e) {
     echo "[GateB] WARN: token upsert skipped — {$e->getMessage()}\n";
+}
+
+try {
+    require __DIR__ . '/run-migrations.php';
+} catch (\Throwable $e) {
+    echo "[GateB] WARN: migrations — {$e->getMessage()}\n";
 }
 
 echo "[GateB] fixture-init done.\n";

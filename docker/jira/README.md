@@ -17,8 +17,13 @@
 
 ```bash
 cd pearProjectApi/docker/jira
-chmod +x start-jira.sh init-jira-fixture.sh
+chmod +x start-jira.sh restart-jira.sh init-jira-fixture.sh
 ./start-jira.sh
+
+# 修改 route/*.php 或 app/ 代码后
+./restart-jira.sh
+
+# 或从 pearProjectApi 根目录: bash restart-api.sh
 
 # 或手动
 docker compose up -d

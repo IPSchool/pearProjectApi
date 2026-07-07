@@ -290,17 +290,19 @@ class Project extends BasicApi
      */
     public function read(Request $request)
     {
-        $project = $this->model->where(['code' => $request::post('projectCode')])->withoutField('id')->find();
+        $ref = $request::post('projectCode');
+        $project = \app\common\Model\Project::resolveByRef($ref);
         if (!$project) {
             $this->notFound();
         }
+        $project = $project->toArray();
         $project['collected'] = 0;
         $collected = ProjectCollection::where(['project_code' => $project['code'], 'member_code' => getCurrentMember()['code']])->field('id')->find();
         if ($collected) {
             $project['collected'] = 1;
         }
-        $item['owner_name'] = '';
-        $item['owner_avatar'] = '';
+        $project['owner_name'] = '';
+        $project['owner_avatar'] = '';
         $owner = ProjectMember::where(['project_code' => $project['code'], 'is_owner' => 1])->field('member_code')->find();
         if ($owner) {
             $member = Member::where(['code' => $owner['member_code']])->field('name,avatar')->find();
@@ -458,7 +460,7 @@ class Project extends BasicApi
                     if (!$item['done']) {
                         $item['end_time'] < nowTime() && $taskStats['overdue']++;
                         if ($item['end_time'] >= $today && $item['end_time'] < $tomorrow) {
-                            $taskStats['doneOverdue']++;
+                            $taskStats['expireToday']++;
                         }
                     } else {
                         $log = ProjectLog::where(['action_type' => 'task', 'source_code' => $item['code'], 'type' => 'done'])->order('id desc')->find();
@@ -471,6 +473,162 @@ class Project extends BasicApi
         }
 
         $this->success('', $taskStats);
+    }
+
+    /**
+     * 项目摘要页 Widget 数据（状态分布、优先级、近期动态等）
+     * @throws DbException
+     */
+    public function _projectOverview()
+    {
+        $projectCode = Request::param('projectCode');
+        if (!$projectCode) {
+            $this->error('项目已失效');
+        }
+        $project = \app\common\Model\Project::where(['code' => $projectCode])->find();
+        if (!$project) {
+            $this->error('项目已失效');
+        }
+
+        $sevenDaysAgo = date('Y-m-d H:i:s', strtotime('-7 days'));
+        $now = nowTime();
+        $nextWeek = date('Y-m-d H:i:s', strtotime('+7 days'));
+        $today = date('Y-m-d 00:00:00', time());
+        $tomorrow = date('Y-m-d 00:00:00', strtotime($today) + 3600 * 24);
+
+        $tasks = Db::name('task')
+            ->where(['project_code' => $projectCode, 'deleted' => 0])
+            ->field('code,name,stage_code,pri,status,done,end_time,create_time,assign_to')
+            ->select()
+            ->toArray();
+        $taskCodes = array_column($tasks, 'code');
+
+        $activity7d = [
+            'completed' => 0,
+            'updated' => 0,
+            'created' => 0,
+            'dueSoon' => 0,
+        ];
+        foreach ($tasks as $item) {
+            if ($item['create_time'] && $item['create_time'] >= $sevenDaysAgo) {
+                $activity7d['created']++;
+            }
+            if (!$item['done'] && $item['end_time'] && $item['end_time'] >= $now && $item['end_time'] <= $nextWeek) {
+                $activity7d['dueSoon']++;
+            }
+        }
+        if ($taskCodes) {
+            $activity7d['completed'] = Db::name('project_log')
+                ->where('action_type', 'task')
+                ->where('type', 'done')
+                ->whereIn('source_code', $taskCodes)
+                ->where('create_time', '>=', $sevenDaysAgo)
+                ->count();
+            $activity7d['updated'] = Db::name('project_log')
+                ->where('action_type', 'task')
+                ->whereNotIn('type', ['create', 'done', 'redo'])
+                ->whereIn('source_code', $taskCodes)
+                ->where('create_time', '>=', $sevenDaysAgo)
+                ->count();
+        }
+
+        $stages = Db::name('task_stages')
+            ->where('project_code', $projectCode)
+            ->field('code,name,sort')
+            ->order('sort asc,id asc')
+            ->select()
+            ->toArray();
+        $stageNameMap = [];
+        foreach ($stages as $stage) {
+            $stageNameMap[$stage['code']] = $stage['name'];
+        }
+
+        $stageCounts = [];
+        $priorityCounts = [0 => 0, 1 => 0, 2 => 0];
+        $statusCounts = [0 => 0, 1 => 0, 2 => 0, 3 => 0, 4 => 0];
+        $priLabels = [0 => '普通', 1 => '紧急', 2 => '非常紧急'];
+        $statusLabels = [0 => '未开始', 1 => '已完成', 2 => '进行中', 3 => '挂起', 4 => '测试中'];
+
+        foreach ($tasks as $item) {
+            $stageKey = $item['stage_code'] ?: '_none';
+            if (!isset($stageCounts[$stageKey])) {
+                $stageCounts[$stageKey] = [
+                    'stageCode' => $item['stage_code'] ?: '',
+                    'stageName' => $stageNameMap[$item['stage_code']] ?? '未分列',
+                    'count' => 0,
+                ];
+            }
+            $stageCounts[$stageKey]['count']++;
+
+            $pri = isset($item['pri']) ? intval($item['pri']) : 0;
+            if (!isset($priorityCounts[$pri])) {
+                $priorityCounts[$pri] = 0;
+            }
+            $priorityCounts[$pri]++;
+
+            $status = isset($item['status']) ? intval($item['status']) : 0;
+            if (!isset($statusCounts[$status])) {
+                $statusCounts[$status] = 0;
+            }
+            $statusCounts[$status]++;
+        }
+
+        $stageBreakdown = array_values($stageCounts);
+        usort($stageBreakdown, function ($a, $b) {
+            return $b['count'] <=> $a['count'];
+        });
+
+        $priorityBreakdown = [];
+        foreach ($priorityCounts as $pri => $count) {
+            $priorityBreakdown[] = [
+                'pri' => $pri,
+                'label' => $priLabels[$pri] ?? '普通',
+                'count' => $count,
+            ];
+        }
+
+        $statusBreakdown = [];
+        foreach ($statusCounts as $status => $count) {
+            if ($count <= 0) {
+                continue;
+            }
+            $statusBreakdown[] = [
+                'status' => $status,
+                'label' => $statusLabels[$status] ?? '未知',
+                'count' => $count,
+            ];
+        }
+
+        $recentActivity = [];
+        if ($taskCodes) {
+            $logs = Db::name('project_log')
+                ->where('action_type', 'task')
+                ->whereIn('source_code', $taskCodes)
+                ->order('id desc')
+                ->limit(15)
+                ->select()
+                ->toArray();
+            $taskNameMap = [];
+            foreach ($tasks as $item) {
+                $taskNameMap[$item['code']] = $item['name'];
+            }
+            foreach ($logs as $log) {
+                $member = Member::where(['code' => $log['member_code']])->field('name,avatar,code')->find();
+                $recentActivity[] = [
+                    'id' => $log['id'],
+                    'taskCode' => $log['source_code'],
+                    'taskName' => $taskNameMap[$log['source_code']] ?? ($log['content'] ?: '工作项'),
+                    'type' => $log['type'],
+                    'remark' => $log['remark'],
+                    'content' => $log['content'],
+                    'createTime' => $log['create_time'],
+                    'member' => $member ?: ['name' => '系统', 'avatar' => '', 'code' => ''],
+                    'isComment' => intval($log['is_comment']),
+                ];
+            }
+        }
+
+        $this->success('', compact('activity7d', 'stageBreakdown', 'priorityBreakdown', 'statusBreakdown', 'recentActivity'));
     }
 
     /**

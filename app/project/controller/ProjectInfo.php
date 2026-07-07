@@ -78,15 +78,19 @@ class ProjectInfo extends BasicApi
         if (!$data['infoCode']) {
             $this->error("请选择一个项目信息");
         }
-        $info = $this->model->where(['code' => $data['infoCode']])->field('id,project_code')->find();
+        $info = $this->model->where(['code' => $data['infoCode']])->field('id,project_code,name,sort')->find();
         if (!$info) {
             $this->error("该项目信息已失效");
         }
-        $has = $this->model->where(['name' => $data['name'], 'project_code' => $info['project_code']])->field('id,sort')->find();
-        if ($has && $has['id'] != $info['id']) {
-            $this->error("该项目信息名称已存在");
+        $newName = trim($data['name']);
+        if ($newName !== trim($info['name'])) {
+            $has = $this->model->where(['name' => $data['name'], 'project_code' => $info['project_code']])->field('id')->find();
+            if ($has && $has['id'] != $info['id']) {
+                $this->error("该项目信息名称已存在");
+            }
         }
-        $result = $this->model->_edit(['name' => $data['name'], 'description' => $data['description'], 'value' => $data['value'], 'sort' => isset($data['sort']) ? $data['sort'] : $has['sort']], ['code' => $data['infoCode']]);
+        $sort = isset($data['sort']) ? $data['sort'] : $info['sort'];
+        $result = $this->model->_edit(['name' => $data['name'], 'description' => $data['description'], 'value' => $data['value'], 'sort' => $sort], ['code' => $data['infoCode']]);
         if ($result) {
             $this->success('');
         }

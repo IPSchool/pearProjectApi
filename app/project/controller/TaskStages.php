@@ -2,6 +2,7 @@
 
 namespace app\project\controller;
 
+use app\common\Model\Project;
 use controller\BasicApi;
 use think\facade\Request;
 
@@ -17,6 +18,15 @@ class TaskStages extends BasicApi
         }
     }
 
+    private function resolveProjectCode($ref)
+    {
+        if (!$ref) {
+            return null;
+        }
+        $project = Project::resolveByRef($ref);
+        return $project ? $project['code'] : $ref;
+    }
+
     /**
      * 显示资源列表
      * @return void
@@ -29,6 +39,7 @@ class TaskStages extends BasicApi
         if (!$code) {
             $this->error("请选择一个项目");
         }
+        $code = $this->resolveProjectCode($code);
         $where[] = ['project_code', '=', $code];
         $list = $this->model->_list($where, 'sort asc,id asc');
         if ($list['list']) {
@@ -52,6 +63,7 @@ class TaskStages extends BasicApi
         if (!$code) {
             $this->error("请选择一个项目");
         }
+        $code = $this->resolveProjectCode($code);
         $where[] = ['project_code', '=', $code];
         $list = $this->model->where($where)->select();
         $this->success('', $list);
@@ -95,6 +107,7 @@ class TaskStages extends BasicApi
         if (!$code) {
             $this->error("请选择一个项目");
         }
+        $code = $this->resolveProjectCode($code);
         $where[] = ['project_code', '=', $code];
         $list = $this->model->where($where)->select();
         if ($list) {
@@ -132,7 +145,8 @@ class TaskStages extends BasicApi
             $this->error("请填写列表名称");
         }
         try {
-            $result = $this->model->createStage($data['name'], $data['projectCode']);
+            $projectCode = $this->resolveProjectCode($data['projectCode']);
+            $result = $this->model->createStage($data['name'], $projectCode);
         } catch (\Exception $e) {
             $this->error($e->getMessage(), $e->getCode());;
         }

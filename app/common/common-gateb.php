@@ -161,5 +161,22 @@ function request_only($fields, $filter = '')
     return $data;
 }
 
+/**
+ * 仅返回请求中实际提交的字段（不填充空默认值）。
+ * 用于 task/edit 等局部更新接口，避免误清空未提交的列。
+ */
+function request_present_only($fields, $filter = '')
+{
+    if (is_string($fields)) {
+        $fieldList = array_map('trim', explode(',', $fields));
+    } else {
+        $fieldList = $fields;
+    }
+    if ($filter !== '') {
+        return \think\facade\Request::only($fieldList, 'param', $filter);
+    }
+    return \think\facade\Request::only($fieldList);
+}
+
 require_once __DIR__ . '/gateb-upload.php';
 require_once __DIR__ . '/gateb-import.php';

@@ -37,7 +37,7 @@ class ProjectTemplate extends CommonModel
             'name' => $name,
             'description' => $description,
             'organization_code' => $orgCode,
-            'cover' => $cover ?? FileService::getFilePrefix() . 'static/image/default/cover.png'
+            'cover' => $cover ?: FileService::getDefaultProjectCoverUrl()
         ];
         $result = self::create($data);
         if ($result) {

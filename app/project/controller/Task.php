@@ -4,7 +4,10 @@ namespace app\project\controller;
 
 use app\common\Model\CommonModel;
 use app\common\Model\Member;
+use app\common\Model\Project;
 use app\common\Model\ProjectLog;
+use app\common\Model\ProjectLogReaction;
+use app\jira\service\JiraIssueService;
 use app\common\Model\TaskTag;
 use app\common\Model\TaskToTag;
 use app\common\Model\TaskWorkTime;
@@ -38,7 +41,14 @@ class Task extends BasicApi
         $params = request_only('stageCode,pcode,keyword,order,projectCode,deleted');
         foreach (['stageCode', 'pcode', 'deleted', 'projectCode'] as $key) {
             if ($key == 'projectCode') {
-                (isset($params[$key]) && $params[$key] !== '') && $where[] = ['project_code', '=', $params[$key]];
+                if (isset($params[$key]) && $params[$key] !== '') {
+                    $project = Project::resolveByRef($params[$key]);
+                    if ($project) {
+                        $where[] = ['project_code', '=', $project['code']];
+                    } else {
+                        $where[] = ['project_code', '=', $params[$key]];
+                    }
+                }
                 continue;
             }
             (isset($params[$key]) && $params[$key] !== '') && $where[] = [$key, '=', $params[$key]];
@@ -53,7 +63,12 @@ class Task extends BasicApi
         $list = $this->model->_list($where, $order);
         if ($list['list']) {
             foreach ($list['list'] as &$task) {
-                $task['executor'] = Member::where(['code' => $task['assign_to']])->field('name,avatar')->find();
+                $task['executor'] = Member::where(['code' => $task['assign_to']])->field('name,avatar,code')->find();
+                if (!empty($task['create_by'])) {
+                    $task['creator'] = Member::where(['code' => $task['create_by']])->field('name,avatar,code')->find();
+                } else {
+                    $task['creator'] = null;
+                }
             }
         }
         $this->success('', $list);
@@ -91,15 +106,27 @@ class Task extends BasicApi
         }
         $type == -1 && $done = $type;
         $list = $this->model->getMemberTasks($member['code'], $done, $taskType, Request::post('page'), Request::post('pageSize'));
-        $status = [0 => '普通', 1 => '紧急', 2 => '非常紧急'];
+        $priLabels = [0 => '普通', 1 => '紧急', 2 => '非常紧急'];
+        $statusLabels = [0 => '未开始', 1 => '已完成', 2 => '进行中', 3 => '挂起', 4 => '测试中'];
         if ($list['list']) {
             foreach ($list['list'] as &$task) {
                 $taskInfo = \app\common\Model\Task::find($task['id']);
                 $task['parentDone'] = $taskInfo['parentDone'];
                 $task['hasUnDone'] = $taskInfo['hasUnDone'];
-                $task['priText'] = $status[$task['pri']];
-                $task['executor'] = Member::where(['code' => $task['assign_to']])->field('name,avatar')->find();
-                $task['projectInfo'] = \app\common\Model\Project::where(['code' => $task['project_code']])->field('name,code')->find();
+                $task['priText'] = $priLabels[$task['pri'] ?? 0] ?? '普通';
+                $task['statusText'] = $statusLabels[$task['status'] ?? 0] ?? '未开始';
+                $task['executor'] = Member::where(['code' => $task['assign_to']])->field('name,avatar,code')->find();
+                $task['projectInfo'] = [
+                    'id'   => (int) ($task['project_id'] ?? 0),
+                    'code' => $task['project_code'],
+                    'name' => $task['projectName'] ?? '',
+                ];
+                if (!empty($task['project_open_prefix']) && !empty($task['project_prefix']) && !empty($task['id_num'])) {
+                    $task['issueKey'] = strtoupper($task['project_prefix']) . '-' . $task['id_num'];
+                } else {
+                    $task['issueKey'] = '';
+                }
+                unset($task['project_prefix'], $task['project_open_prefix']);
             }
         }
         $this->success('', $list);
@@ -142,6 +169,103 @@ class Task extends BasicApi
         $data = request_only('taskCode');
         try {
             $result = $this->model->read($data['taskCode']);
+        } catch (Exception $e) {
+            $this->error($e->getMessage(), $e->getCode());
+        }
+        if ($result) {
+            $this->success('', $result);
+        }
+    }
+
+    /**
+     * 按 Jira Issue Key 读取任务（如 KAN-1）
+     */
+    public function readByIssueKey(Request $request)
+    {
+        $issueKey = trim((string) $request::post('issueKey', ''));
+        if ($issueKey === '') {
+            $this->error('请提供 Issue Key');
+        }
+        $parsed = JiraIssueService::parseIssueKey($issueKey);
+        if (!$parsed) {
+            $this->error('Issue 不存在', 404);
+        }
+        try {
+            $result = $this->model->read($parsed['task']['code']);
+        } catch (Exception $e) {
+            $this->error($e->getMessage(), $e->getCode());
+        }
+        if ($result) {
+            $result['issueKey'] = $parsed['key'];
+            $this->success('', $result);
+        }
+    }
+
+    /**
+     * 按项目引用 + 任务序号/id/code 读取（URL 友好）
+     * projectRef: 项目数字 id / prefix / code
+     * taskRef: id_num / 全局 id / code / ISSUE-KEY
+     */
+    public function readByRef(Request $request)
+    {
+        $projectRef = trim((string) $request::post('projectRef', ''));
+        $taskRef = trim((string) $request::post('taskRef', ''));
+        if ($projectRef === '' || $taskRef === '') {
+            $this->error('请提供项目和任务');
+        }
+
+        if (preg_match('/^[A-Za-z][A-Za-z0-9_]*-\d+$/', $taskRef)) {
+            $parsed = JiraIssueService::parseIssueKey($taskRef);
+            if (!$parsed) {
+                $this->error('Issue 不存在', 404);
+            }
+            try {
+                $result = $this->model->read($parsed['task']['code']);
+            } catch (Exception $e) {
+                $this->error($e->getMessage(), $e->getCode());
+            }
+            if ($result) {
+                $result['issueKey'] = $parsed['key'];
+                $this->success('', $result);
+            }
+            return;
+        }
+
+        $project = Project::resolveByRef($projectRef);
+        if (!$project) {
+            $this->error('项目不存在', 404);
+        }
+        $project = $project->toArray();
+
+        $task = null;
+        if (ctype_digit($taskRef)) {
+            $num = (int) $taskRef;
+            $task = $this->model->where([
+                'project_code' => $project['code'],
+                'id_num'       => $num,
+                'deleted'      => 0,
+            ])->field('code')->find();
+            if (!$task) {
+                $task = $this->model->where([
+                    'project_code' => $project['code'],
+                    'id'           => $num,
+                    'deleted'      => 0,
+                ])->field('code')->find();
+            }
+        } else {
+            $task = $this->model->where([
+                'project_code' => $project['code'],
+                'code'         => $taskRef,
+                'deleted'      => 0,
+            ])->field('code')->find();
+        }
+
+        if (!$task) {
+            $this->error('任务不存在', 404);
+        }
+
+        try {
+            $result = $this->model->read($task['code']);
         } catch (Exception $e) {
             $this->error($e->getMessage(), $e->getCode());
         }
@@ -288,6 +412,49 @@ class Task extends BasicApi
     }
 
     /**
+     * 删除评论
+     */
+    public function deleteComment(Request $request)
+    {
+        $logCode = $request::post('logCode');
+        if (!$logCode) {
+            $this->error('请选择评论');
+        }
+        try {
+            $result = $this->model->deleteComment($logCode);
+        } catch (Exception $e) {
+            $this->error($e->getMessage(), $e->getCode());
+        }
+        if ($result) {
+            $this->success();
+        }
+        $this->error('删除失败');
+    }
+
+    /**
+     * 评论点赞 / 表情
+     */
+    public function toggleCommentReaction(Request $request)
+    {
+        $logCode = $request::post('logCode');
+        $reaction = $request::post('reaction', 'like');
+        if (!$logCode) {
+            $this->error('请选择评论');
+        }
+        $log = ProjectLog::where(['code' => $logCode, 'is_comment' => 1])->find();
+        if (!$log) {
+            $this->error('评论不存在');
+        }
+        try {
+            ProjectLogReaction::toggle($logCode, getCurrentMember()['code'], $reaction);
+        } catch (Exception $e) {
+            $this->error($e->getMessage());
+        }
+        $reactions = ProjectLogReaction::summarizeForLogs([$logCode], getCurrentMember()['code']);
+        $this->success('', ['reactions' => $reactions[$logCode] ?? []]);
+    }
+
+    /**
      * 保存
      * @param Request $request
      * @return void
@@ -297,10 +464,14 @@ class Task extends BasicApi
      */
     public function edit(Request $request)
     {
-        $data = request_only('name,sort,end_time,begin_time,pri,description,work_time,status');
+        // 局部更新：只写入请求里实际提交的字段，避免 request_only 空默认值清空 description 等
+        $data = request_present_only('name,sort,end_time,begin_time,pri,description,work_time,status');
         $code = $request::post('taskCode');
         if (!$code) {
             $this->error("请选择一个任务");
+        }
+        if (!$data) {
+            $this->error("没有可更新的内容");
         }
         $template = $this->model->where(['code' => $code])->field('id')->find();
         if (!$template) {
@@ -311,6 +482,27 @@ class Task extends BasicApi
         } catch (Exception $e) {
             $this->error($e->getMessage(), $e->getCode());;
 
+        }
+        if ($result) {
+            $this->success();
+        }
+        $this->error("操作失败，请稍候再试！");
+    }
+
+    /**
+     * 设置或清除任务父项
+     */
+    public function setParent(Request $request)
+    {
+        $code = $request::post('taskCode');
+        if (!$code) {
+            $this->error("请选择一个任务");
+        }
+        $parentCode = $request::post('parentCode', '');
+        try {
+            $result = $this->model->setParent($code, $parentCode);
+        } catch (Exception $e) {
+            $this->error($e->getMessage(), $e->getCode());
         }
         if ($result) {
             $this->success();
@@ -460,6 +652,14 @@ class Task extends BasicApi
             }
         }
         if ($list['list']) {
+            $logCodes = array_column($list['list'], 'code');
+            $memberCode = getCurrentMember()['code'];
+            $reactionMap = [];
+            try {
+                $reactionMap = ProjectLogReaction::summarizeForLogs($logCodes, $memberCode);
+            } catch (\Throwable $e) {
+                $reactionMap = [];
+            }
             foreach ($list['list'] as &$item) {
                 if ($item['is_robot'] && $item['type'] != 'claim') {
                     $item['member'] = ['name' => 'PP Robot'];
@@ -468,6 +668,9 @@ class Task extends BasicApi
                 $member = Member::where(['code' => $item['member_code']])->field('id,name,avatar,code')->find();
                 !$member && $member = [];
                 $item['member'] = $member;
+                $item['member_name'] = $member['name'] ?? '';
+                $item['member_avatar'] = $member['avatar'] ?? '';
+                $item['reactions'] = $reactionMap[$item['code']] ?? [];
             }
         }
         $this->success('', $list);

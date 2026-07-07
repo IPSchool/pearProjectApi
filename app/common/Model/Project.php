@@ -20,6 +20,31 @@ class Project extends CommonModel
         return self::where(['id' => $id, 'deleted' => 0, 'archive' => 0])->find();
     }
 
+    /**
+     * 解析 URL/API 中的项目引用：数字 id、prefix、或 legacy code
+     */
+    public static function resolveByRef($ref)
+    {
+        if ($ref === null || $ref === '') {
+            return null;
+        }
+        $ref = trim((string) $ref);
+        if (ctype_digit($ref)) {
+            return self::where(['id' => (int) $ref, 'deleted' => 0])->find();
+        }
+        if (preg_match('/^[A-Za-z][A-Za-z0-9_]*$/', $ref)) {
+            $byPrefix = self::where([
+                'prefix'      => strtoupper($ref),
+                'open_prefix' => 1,
+                'deleted'     => 0,
+            ])->find();
+            if ($byPrefix) {
+                return $byPrefix;
+            }
+        }
+        return self::where(['code' => $ref, 'deleted' => 0])->find();
+    }
+
     public function getMemberProjects($memberCode = '',$organizationCode = '', $deleted = 0, $archive = 0, $collection = -1, $page = 1, $pageSize = 10)
     {
         if (!$memberCode) {
@@ -74,7 +99,7 @@ class Project extends CommonModel
                 'description' => $description,
                 'organization_code' => $orgCode,
                 'task_board_theme' => 'simple',
-                'cover' => FileService::getFilePrefix() . 'static/image/default/project-cover.png'
+                'cover' => FileService::getDefaultProjectCoverUrl()
             ];
             $result = self::create($project);
             $projectMemberModel = new ProjectMember();
