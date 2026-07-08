@@ -25,6 +25,7 @@ python3 "$DIR/smoke/test_b_delta.py" || fail=1
 
 python3 "$DIR/smoke/test_jira_python.py" || fail=1
 python3 "$DIR/smoke/test_jira_python_extended.py" || fail=1
+python3 "$DIR/smoke/test_b_epsilon.py" || fail=1
 
 if [ "$fail" -ne 0 ]; then
   exit 1

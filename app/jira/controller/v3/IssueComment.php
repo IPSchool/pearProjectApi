@@ -37,6 +37,13 @@ class IssueComment
         if (isset($result['error'])) {
             return JiraResponse::badRequest($result['errors']);
         }
+        JiraCommentService::notifyCommentCreated(
+            $parsed['task'],
+            $parsed['project'],
+            $parsed['key'],
+            $result,
+            $request->jiraMember
+        );
         return JiraResponse::json($result, 201);
     }
 }

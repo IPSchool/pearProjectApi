@@ -60,6 +60,20 @@ class JiraCommentService
         return self::toJiraComment($log->toArray(), (int) $log['id']);
     }
 
+    public static function notifyCommentCreated(array $task, array $project, string $issueKey, array $comment, ?array $actorMember = null): void
+    {
+        $parsed = JiraIssueService::parseIssueKey($issueKey);
+        if (!$parsed) {
+            return;
+        }
+        JiraWebhookService::dispatch(
+            JiraWebhookService::EVENT_COMMENT_CREATED,
+            JiraIssueService::toJiraIssue($parsed['task'], $project, $issueKey),
+            $actorMember,
+            ['comment' => $comment]
+        );
+    }
+
     public static function toJiraComment(array $log, int $displayId): array
     {
         $member = Member::where(['code' => $log['member_code']])->find();

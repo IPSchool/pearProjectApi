@@ -43,6 +43,21 @@ Route::group('rest/api/3', function () use ($issueKeyPattern) {
         ->pattern($issueKeyPattern);
     Route::post('issue/:issueIdOrKey/transitions', 'app\jira\controller\v3\IssueTransition@apply')
         ->pattern($issueKeyPattern);
+    Route::get('issue/:issueIdOrKey/watchers', 'app\jira\controller\v3\IssueWatcher@index')
+        ->pattern($issueKeyPattern);
+    Route::post('issue/:issueIdOrKey/watchers', 'app\jira\controller\v3\IssueWatcher@addWatcher')
+        ->pattern($issueKeyPattern);
+    Route::delete('issue/:issueIdOrKey/watchers', 'app\jira\controller\v3\IssueWatcher@removeWatcher')
+        ->pattern($issueKeyPattern);
+
+    Route::post('issueLink', 'app\jira\controller\v3\IssueLink@create');
+    Route::delete('issueLink/:linkId', 'app\jira\controller\v3\IssueLink@delete');
+
+    Route::post('filter', 'app\jira\controller\v3\Filter@create');
+    Route::get('filter/search', 'app\jira\controller\v3\Filter@search');
+    Route::get('filter/:filterId', 'app\jira\controller\v3\Filter@read');
+    Route::put('filter/:filterId', 'app\jira\controller\v3\Filter@update');
+    Route::delete('filter/:filterId', 'app\jira\controller\v3\Filter@delete');
 
     Route::post('issue', 'app\jira\controller\v3\Issue@create');
     Route::get('issue/:issueIdOrKey', 'app\jira\controller\v3\Issue@read')
@@ -51,4 +66,10 @@ Route::group('rest/api/3', function () use ($issueKeyPattern) {
         ->pattern($issueKeyPattern);
     Route::delete('issue/:issueIdOrKey', 'app\jira\controller\v3\Issue@delete')
         ->pattern($issueKeyPattern);
+})->middleware(JiraAuth::class);
+
+Route::group('rest/webhooks/1.0', function () {
+    Route::get('webhook', 'app\jira\controller\webhook\Webhook@index');
+    Route::post('webhook', 'app\jira\controller\webhook\Webhook@create');
+    Route::delete('webhook/:webhookId', 'app\jira\controller\webhook\Webhook@delete');
 })->middleware(JiraAuth::class);

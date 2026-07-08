@@ -63,4 +63,37 @@ class JiraAuthService
         }
         return '712020:' . $member['code'];
     }
+
+    public static function findMemberByAccountId(string $accountId): ?array
+    {
+        $accountId = trim($accountId);
+        if ($accountId === '') {
+            return null;
+        }
+
+        try {
+            $row = JiraApiToken::where(['account_id' => $accountId, 'revoked' => 0])->find();
+            if ($row) {
+                $member = Member::where(['code' => $row['member_code'], 'status' => 1])->find();
+                return $member ? $member->toArray() : null;
+            }
+        } catch (\Throwable $e) {
+            // table not migrated yet
+        }
+
+        if ($accountId === config('jira.gate_b_account_id')) {
+            $member = Member::where(['email' => config('jira.gate_b_email'), 'status' => 1])->find();
+            return $member ? $member->toArray() : null;
+        }
+
+        if (str_starts_with($accountId, '712020:')) {
+            $code = substr($accountId, 7);
+            if ($code !== '') {
+                $member = Member::where(['code' => $code, 'status' => 1])->find();
+                return $member ? $member->toArray() : null;
+            }
+        }
+
+        return null;
+    }
 }

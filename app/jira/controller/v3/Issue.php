@@ -72,6 +72,13 @@ class Issue
             return JiraResponse::badRequest(['summary' => "Field 'summary' cannot be empty"]);
         }
 
+        JiraIssueService::notifyIssueUpdated(
+            $parsed['task'],
+            $parsed['project'],
+            $parsed['key'],
+            $request->jiraMember
+        );
+
         return JiraResponse::noContent();
     }
 
@@ -82,6 +89,12 @@ class Issue
             return JiraResponse::notFound('Issue does not exist or you do not have permission to see it.');
         }
 
+        JiraIssueService::notifyIssueDeleted(
+            $parsed['task'],
+            $parsed['project'],
+            $parsed['key'],
+            $request->jiraMember
+        );
         JiraIssueService::deleteIssue($parsed['task']);
         return JiraResponse::noContent();
     }

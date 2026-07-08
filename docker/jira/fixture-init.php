@@ -42,6 +42,21 @@ if (is_file($migration)) {
     echo "[GateB] Applied jira schema migration\n";
 }
 
+$jiraExtras = $rootPath . 'data/migrations/20260708_jira_watcher_link_webhook_filter.sql';
+if (is_file($jiraExtras)) {
+    $sql = file_get_contents($jiraExtras);
+    foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
+        if ($statement !== '' && stripos($statement, 'SET FOREIGN_KEY') !== 0) {
+            try {
+                Db::execute($statement);
+            } catch (\Throwable $e) {
+                echo "[GateB] WARN migration: {$e->getMessage()}\n";
+            }
+        }
+    }
+    echo "[GateB] Applied jira extras migration\n";
+}
+
 $member = Member::where(['email' => $email])->find();
 if (!$member) {
     $member = Member::createMember([

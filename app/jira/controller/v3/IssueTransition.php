@@ -53,6 +53,14 @@ class IssueTransition
                 'errors'        => new \stdClass(),
             ], $result['status'] ?? 400);
         }
+
+        JiraIssueService::notifyIssueUpdated(
+            $parsed['task'],
+            $parsed['project'],
+            $parsed['key'],
+            $request->jiraMember
+        );
+
         return JiraResponse::noContent();
     }
 }

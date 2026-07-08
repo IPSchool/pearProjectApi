@@ -103,8 +103,19 @@ class JiraIssueService
                     ],
                 ],
                 'resolution' => TaskResolutionService::toJira($task['resolution'] ?? null),
+                'watches'    => [
+                    'self'       => request()->domain() . '/rest/api/3/issue/' . $issueKey . '/watchers',
+                    'watchCount' => JiraWatcherService::watchCount($task['code']),
+                    'isWatching' => false,
+                ],
+                'issuelinks' => JiraIssueLinkService::listForTask($task),
             ],
         ];
+    }
+
+    public static function statusNamePublic(array $task): string
+    {
+        return self::statusName($task);
     }
 
     public static function createIssue(array $fields, string $memberCode): array
@@ -171,6 +182,23 @@ class JiraIssueService
             ->toArray();
         $issueKey = strtoupper($project['prefix']) . '-' . $task['id_num'];
 
+        $issuePayload = self::toJiraIssue(
+            Task::where(['code' => $result['code']])
+                ->field('id,code,project_code,name,pri,execute_status,description,create_by,done_by,done_time,create_time,assign_to,deleted,stage_code,done,begin_time,end_time,pcode,sort,id_num,status,resolution')
+                ->find()
+                ->toArray(),
+            $project,
+            $issueKey
+        );
+        $member = \app\common\Model\Member::where(['code' => $memberCode])->find();
+        if ($member) {
+            JiraWebhookService::dispatch(
+                JiraWebhookService::EVENT_ISSUE_CREATED,
+                $issuePayload,
+                $member->toArray()
+            );
+        }
+
         return [
             'id'   => (string) $task['id'],
             'key'  => $issueKey,
@@ -189,6 +217,30 @@ class JiraIssueService
         }
         Task::update(['name' => $summary], ['code' => $task['code']]);
         return true;
+    }
+
+    public static function notifyIssueUpdated(array $task, array $project, string $issueKey, ?array $actorMember = null): void
+    {
+        $fresh = Task::where(['code' => $task['code']])
+            ->field('id,code,project_code,name,pri,execute_status,description,create_by,done_by,done_time,create_time,assign_to,deleted,stage_code,done,begin_time,end_time,pcode,sort,id_num,status,resolution')
+            ->find();
+        if (!$fresh) {
+            return;
+        }
+        JiraWebhookService::dispatch(
+            JiraWebhookService::EVENT_ISSUE_UPDATED,
+            self::toJiraIssue($fresh->toArray(), $project, $issueKey),
+            $actorMember
+        );
+    }
+
+    public static function notifyIssueDeleted(array $task, array $project, string $issueKey, ?array $actorMember = null): void
+    {
+        JiraWebhookService::dispatch(
+            JiraWebhookService::EVENT_ISSUE_DELETED,
+            self::toJiraIssue($task, $project, $issueKey),
+            $actorMember
+        );
     }
 
     public static function deleteIssue(array $task): void

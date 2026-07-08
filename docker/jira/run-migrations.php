@@ -94,3 +94,7 @@ migrate_ok('task-resolution migration applied');
 $resolutionSyncFile = $rootPath . 'data/migrations/20260707_task_resolution_sync.sql';
 run_sql_file($resolutionSyncFile);
 migrate_ok('task-resolution-sync migration applied');
+
+$jiraExtrasFile = $rootPath . 'data/migrations/20260708_jira_watcher_link_webhook_filter.sql';
+run_sql_file($jiraExtrasFile);
+migrate_ok('jira watcher/link/webhook/filter migration applied');

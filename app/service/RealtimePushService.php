@@ -1,6 +1,6 @@
 <?php
 
-namespace app\service;
+namespace service;
 
 use app\common\Model\Project;
 use think\facade\Config;
