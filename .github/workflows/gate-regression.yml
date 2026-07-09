@@ -47,6 +47,18 @@ jobs:
             runtime/log/**
           if-no-files-found: ignore
 
+      - name: Upload docker logs on failure
+        if: failure()
+        run: docker compose -f docker/jira/docker-compose.yml logs --no-color > gate-docker-logs.txt 2>&1 || true
+
+      - name: Upload docker log artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-docker-logs
+          path: gate-docker-logs.txt
+          if-no-files-found: ignore
+
       - name: Tear down
         if: always()
         run: docker compose -f docker/jira/docker-compose.yml down -v --remove-orphans

@@ -17,7 +17,18 @@ echo "========== CI: Gate A + Gate B Regression =========="
 echo "ROOT: ${ROOT}"
 
 cd "${ROOT}"
-docker compose -f "${COMPOSE_FILE}" up -d --build
+if ! docker compose -f "${COMPOSE_FILE}" up -d --build; then
+  echo "docker compose up failed"
+  docker compose -f "${COMPOSE_FILE}" logs mysql --tail 80 2>/dev/null || true
+  exit 1
+fi
+
+# Fail fast if MySQL container crashed (e.g. seed SQL import error)
+if ! docker compose -f "${COMPOSE_FILE}" ps --status running mysql 2>/dev/null | grep -q .; then
+  echo "MySQL container is not running after compose up"
+  docker compose -f "${COMPOSE_FILE}" logs mysql --tail 80 2>/dev/null || true
+  exit 1
+fi
 
 bash "${ROOT}/tests/ci/wait-for-db-seed.sh"
 bash "${ROOT}/tests/ci/wait-for-ready.sh"

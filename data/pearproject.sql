@@ -2954,7 +2954,6 @@ CREATE TABLE `pear_task`  (
   `features_code` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '0' COMMENT '版本库id',
   `work_time` int(5) NULL DEFAULT 0 COMMENT '预估工时',
   `status` tinyint(2) NULL DEFAULT 0 COMMENT '执行状态。0：未开始，1：已完成，2：进行中，3：挂起，4：测试中',
-  `resolution` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'Jira resolution',
   PRIMARY KEY (`id`, `project_code`) USING BTREE,
   UNIQUE INDEX `task`(`code`) USING BTREE,
   INDEX `stage_code`(`stage_code`) USING BTREE,
