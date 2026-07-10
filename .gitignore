@@ -19,5 +19,9 @@
 /application
 /extend
 *.php.pid
+# Python bytecode / cache
+__pycache__/
+*.py[cod]
+*$py.class
 *.pyc
 workerman.log
