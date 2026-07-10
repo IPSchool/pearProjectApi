@@ -68,16 +68,56 @@ class LegacyClient:
                 try:
                     return json.loads(raw_bytes.decode()), status
                 except (UnicodeDecodeError, json.JSONDecodeError):
+                    if not raw_bytes and 200 <= status < 300:
+                        return {"code": 200, "msg": "", "data": None}, status
                     return {"_binary": True, "size": len(raw_bytes)}, status
         except urllib.error.HTTPError as exc:
             raw_bytes = exc.read()
             try:
                 return json.loads(raw_bytes.decode()), exc.code
             except (UnicodeDecodeError, json.JSONDecodeError):
+                if not raw_bytes and 200 <= exc.code < 300:
+                    return {"code": 200, "msg": "", "data": None}, exc.code
                 return {"_binary": True, "size": len(raw_bytes)}, exc.code
 
     def post(self, path: str, data: dict | None = None, auth: bool = True) -> tuple[dict | str, int]:
         return self.request("POST", path, data, auth=auth)
+
+    def upload_multipart(
+        self,
+        path: str,
+        fields: dict[str, str],
+        *,
+        file_field: str = "file",
+        filename: str = "test.txt",
+        content: bytes = b"gate-a upload",
+        content_type: str = "text/plain",
+    ) -> tuple[dict | str, int]:
+        boundary = f"----GateA{os.getpid()}"
+        parts: list[bytes] = []
+        for key, value in fields.items():
+            parts.append(
+                f"--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="{key}"\r\n\r\n'
+                f"{value}\r\n".encode()
+            )
+        parts.append(
+            (
+                f"--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="{file_field}"; filename="{filename}"\r\n'
+                f"Content-Type: {content_type}\r\n\r\n"
+            ).encode()
+            + content
+            + f"\r\n--{boundary}--\r\n".encode()
+        )
+        body = b"".join(parts)
+        return self.request(
+            "POST",
+            path,
+            auth=True,
+            raw_body=body,
+            content_type=f"multipart/form-data; boundary={boundary}",
+        )
 
     def get(self, path: str, auth: bool = True) -> tuple[dict | str, int]:
         return self.request("GET", path, None, auth=auth)

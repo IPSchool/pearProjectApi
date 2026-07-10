@@ -1,0 +1,86 @@
+# Gate B L3 — Jira REST 响应结构契约（Pear 实现基准，防下一阶段的字段漂移）
+
+schemas:
+  - id: JIRA-L3-M01
+    method: GET
+    path: /rest/api/3/myself
+    required: [accountId, displayName, emailAddress]
+    types:
+      accountId: str
+      displayName: str
+
+  - id: JIRA-L3-P01
+    method: GET
+    path: /rest/api/3/project/{projectKey}
+    required: [id, key, name]
+    types:
+      id: str
+      key: str
+
+  - id: JIRA-L3-S01
+    method: POST
+    path: /rest/api/3/search
+    body: jql
+    required: [issues, total]
+    types:
+      total: int
+
+  - id: JIRA-L3-I01
+    method: GET
+    path: /rest/api/3/issue/{issueKey}
+    setup_issue: true
+    required: [id, key, fields]
+    nested:
+      fields:
+        required: [summary, status, issuetype, project, priority, labels, components, fixVersions, versions, created, updated]
+        types:
+          labels: list
+          components: list
+          fixVersions: list
+          versions: list
+
+  - id: JIRA-L3-C01
+    method: GET
+    path: /rest/api/3/issue/{issueKey}/comment
+    setup_issue: true
+    required: [comments]
+    types:
+      comments: list
+
+  - id: JIRA-L3-T01
+    method: GET
+    path: /rest/api/3/issue/{issueKey}/transitions
+    setup_issue: true
+    required: [transitions]
+    types:
+      transitions: list
+
+  - id: JIRA-L3-W01
+    method: GET
+    path: /rest/api/3/issue/{issueKey}/worklog
+    setup_issue: true
+    required: [worklogs, total]
+    types:
+      worklogs: list
+      total: int
+
+  - id: JIRA-L3-CL01
+    method: GET
+    path: /rest/api/3/issue/{issueKey}/changelog
+    setup_issue: true
+    required: [histories, total]
+    types:
+      histories: list
+      total: int
+
+  - id: JIRA-L3-V01
+    method: GET
+    path: /rest/api/3/project/{projectKey}/versions
+    required: []
+    response: list
+
+  - id: JIRA-L3-CM01
+    method: GET
+    path: /rest/api/3/project/{projectKey}/components
+    required: []
+    response: list

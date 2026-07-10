@@ -114,7 +114,12 @@ class File extends CommonModel
 
     public function getFullNameAttr($value, $data)
     {
-        return "{$data['title']}.{$data['extension']}";
+        $title = $data['title'] ?? '';
+        $ext = $data['extension'] ?? '';
+        if ($ext === '') {
+            return $title;
+        }
+        return "{$title}.{$ext}";
     }
 
 }

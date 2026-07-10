@@ -15,8 +15,8 @@ def main() -> int:
     try:
         from jira import JIRA  # type: ignore
     except ImportError:
-        print("⏭️  jira-python 未安装，跳过 Layer 4（pip install jira）")
-        return 0
+        print("❌ jira-python 未安装（CI 须 pip install jira）")
+        return 1
 
     print("=== Gate B Layer 4: jira-python smoke ===")
     print(f"server: {BASE}")

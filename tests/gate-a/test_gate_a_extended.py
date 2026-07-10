@@ -232,14 +232,14 @@ def test_task_stages_and_members() -> None:
     check("HV-A49", "新增看板列", client.ok(res) and bool(new_code))
 
     if new_code:
-        res, status = client.post("project/taskStages/edit", {"stageCode": new_code, "name": new_stage + "-2"})
-        check_no500("HV-A50", "编辑看板列", res, status)
+        res, _ = client.post("project/taskStages/edit", {"stageCode": new_code, "name": new_stage + "-2"})
+        check("HV-A50", "编辑看板列", client.ok(res))
 
     res, status = client.post("project/taskMember/index", {"taskCode": task_code})
     check("HV-A51", "任务成员列表", client.ok(res))
 
-    res, status = client.post("project/taskMember/searchInviteMember", {"taskCode": task_code, "keyword": "123456"})
-    check_no500("HV-A52", "搜索任务成员", res, status)
+    res, _ = client.post("project/taskMember/searchInviteMember", {"taskCode": task_code, "keyword": "123456"})
+    check("HV-A52", "搜索任务成员", client.ok(res))
 
 
 def test_task_tags() -> None:
@@ -341,13 +341,14 @@ def test_events_and_project_extras() -> None:
     res, status = client.post(
         "project/events/save",
         {
+            "project_code": project_code,
             "title": f"Evt-{uuid.uuid4().hex[:6]}",
-            "start_time": "2030-01-01 10:00:00",
+            "begin_time": "2030-01-01 10:00:00",
             "end_time": "2030-01-01 11:00:00",
         },
     )
     event_code = (res.get("data") or {}).get("code", "") if client.ok(res) else ""
-    check_no500("HV-A76", "创建日程", res, status)
+    check("HV-A76", "创建日程", client.ok(res), str(res.get("msg", ""))[:60] if isinstance(res, dict) else "")
 
     if event_code:
         res, _ = client.post("project/events/read", {"eventsCode": event_code})
@@ -363,15 +364,15 @@ def test_events_and_project_extras() -> None:
     feature_code = (res.get("data") or {}).get("code", "") if client.ok(res) else ""
     check("HV-A79", "创建项目功能", client.ok(res))
 
-    res, status = client.post("project/projectVersion/index", {"projectCode": project_code, "page": 1, "pageSize": 10})
-    check_no500("HV-A80", "版本库列表", res, status)
+    res, _ = client.post("project/projectVersion/indexByProject", {"projectCode": project_code})
+    check("HV-A80", "版本库列表", client.ok(res))
 
-    res, status = client.post(
+    res, _ = client.post(
         "project/projectVersion/save",
-        {"projectCode": project_code, "name": f"v-{uuid.uuid4().hex[:4]}", "description": "gate a"},
+        {"featuresCode": feature_code, "name": f"v-{uuid.uuid4().hex[:4]}", "description": "gate a"},
     )
     version_code = (res.get("data") or {}).get("code", "") if client.ok(res) else ""
-    check_no500("HV-A81", "创建版本", res, status)
+    check("HV-A81", "创建版本", client.ok(res) and bool(version_code), str(res.get("msg", ""))[:60] if isinstance(res, dict) else "")
 
     if version_code:
         res, _ = client.post("project/projectVersion/read", {"versionCode": version_code})
@@ -379,9 +380,14 @@ def test_events_and_project_extras() -> None:
 
     res, _ = client.post("project/projectTemplate/index", {"page": 1, "pageSize": 10})
     check("HV-A83", "项目模板列表", client.ok(res))
+    tpl_list = (res.get("data") or {}).get("list") or []
+    tpl_code = tpl_list[0].get("code", "") if tpl_list else ""
 
-    res, status = client.post("project/taskStagesTemplate/index", {"page": 1, "pageSize": 10})
-    check_no500("HV-A84", "看板模板", res, status)
+    if tpl_code:
+        res, _ = client.post("project/taskStagesTemplate/index", {"code": tpl_code})
+        check("HV-A84", "看板模板", client.ok(res))
+    else:
+        skip("HV-A84", "看板模板", "无项目模板数据")
 
     res, _ = client.post("project/taskWorkflow/index", {"projectCode": project_code})
     check("HV-A85", "工作流列表", client.ok(res))
@@ -396,22 +402,26 @@ def test_events_and_project_extras() -> None:
     check("HV-A88", "可邀请成员列表", client.ok(res))
 
 
+def legacy_rejected(res: dict | str) -> bool:
+    return isinstance(res, dict) and res.get("code") not in (200, 201)
+
+
 def test_invite_and_security() -> None:
     res, _ = client.post("project/inviteLink/save", {"projectCode": project_code})
     check("HV-A89", "生成邀请链接", client.ok(res) or (isinstance(res, dict) and res.get("code") in (200, 201)))
 
     res, _ = client.post("project/project/read", {"projectCode": "invalid-project-code"})
-    check("HV-A90", "无效项目码", isinstance(res, dict) and res.get("code") != 500)
+    check("HV-A90", "无效项目码", legacy_rejected(res))
 
     res, _ = client.post("project/task/read", {"taskCode": "invalid-task-code"})
-    check("HV-A91", "无效任务码", isinstance(res, dict) and res.get("code") in (404, 400, 201))
+    check("HV-A91", "无效任务码", legacy_rejected(res))
 
     bad = LegacyClient()
     bad.login()
     bad.token = "invalid-token-value"
     res, status = bad.post("project/project/selfList", {"page": 1, "pageSize": 1})
     rejected = isinstance(res, dict) and res.get("code") in (401, 403) or status in (401, 403)
-    check("HV-A92", "无效 token 拒绝", rejected or (isinstance(res, dict) and res.get("code") != 200), str(res)[:80])
+    check("HV-A92", "无效 token 拒绝", rejected, str(res)[:80])
 
 
 def test_issue_key_and_numeric_refs() -> None:
@@ -419,21 +429,21 @@ def test_issue_key_and_numeric_refs() -> None:
     res, _ = client.post("project/project/read", {"projectCode": project_code})
     pdata = res.get("data") or {}
     project_id = pdata.get("id")
-    check("HV-A88", "项目 read 含数字 id", client.ok(res) and bool(project_id))
+    check("HV-A96", "项目 read 含数字 id", client.ok(res) and bool(project_id))
 
     if not project_id:
-        skip("HV-A89", "启用 Issue Key", "无 project id")
+        skip("HV-A97", "启用 Issue Key", "无 project id")
         return
 
     res, _ = client.post("project/project/read", {"projectCode": str(project_id)})
-    check("HV-A88a", "项目 read 数字 projectCode", client.ok(res) and (res.get("data") or {}).get("code") == project_code)
+    check("HV-A97", "项目 read 数字 projectCode", client.ok(res) and (res.get("data") or {}).get("code") == project_code)
 
     test_prefix = f"T{uuid.uuid4().hex[:3].upper()}"
     res, _ = client.post(
         "project/project/edit",
         {"projectCode": project_code, "prefix": test_prefix, "open_prefix": 1},
     )
-    check("HV-A89", "启用 Issue Key prefix", client.ok(res))
+    check("HV-A98", "启用 Issue Key prefix", client.ok(res))
 
     res, _ = client.post("project/task/read", {"taskCode": task_code})
     tdata = res.get("data") or {}
@@ -441,12 +451,12 @@ def test_issue_key_and_numeric_refs() -> None:
     issue_key = tdata.get("issueKey") or ""
     expected_key = f"{test_prefix}-{id_num}" if id_num else ""
     check(
-        "HV-A90",
+        "HV-A99",
         "task/read 返回 issueKey",
         client.ok(res) and issue_key.upper() == expected_key.upper(),
     )
     check(
-        "HV-A91",
+        "HV-A100",
         "task/read 返回 project_id",
         client.ok(res) and tdata.get("project_id") == project_id,
     )
@@ -457,7 +467,7 @@ def test_issue_key_and_numeric_refs() -> None:
             {"projectRef": str(project_id), "taskRef": str(id_num)},
         )
         check(
-            "HV-A92",
+            "HV-A101",
             "task/readByRef 数字路径",
             client.ok(res) and (res.get("data") or {}).get("code") == task_code,
         )
@@ -465,16 +475,16 @@ def test_issue_key_and_numeric_refs() -> None:
     if expected_key:
         res, _ = client.post("project/task/readByIssueKey", {"issueKey": expected_key})
         check(
-            "HV-A93",
+            "HV-A102",
             "task/readByIssueKey",
             client.ok(res) and (res.get("data") or {}).get("code") == task_code,
         )
 
     res, _ = client.post("project/taskStages/index", {"projectCode": str(project_id)})
-    check("HV-A94", "taskStages/index 数字 projectCode", client.ok(res))
+    check("HV-A103", "taskStages/index 数字 projectCode", client.ok(res))
 
     res, _ = client.post("project/task/index", {"projectCode": str(project_id), "page": 1, "pageSize": 5})
-    check("HV-A95", "task/index 数字 projectCode", client.ok(res))
+    check("HV-A104", "task/index 数字 projectCode", client.ok(res))
 
     # 恢复：关闭 prefix，避免污染其它用例
     client.post("project/project/edit", {"projectCode": project_code, "open_prefix": 0})
@@ -482,16 +492,16 @@ def test_issue_key_and_numeric_refs() -> None:
 
 def test_workflow_and_cleanup() -> None:
     res, _ = client.post("project/task/_taskWorkTimeList", {"taskCode": task_code})
-    check("HV-A93", "工时列表", client.ok(res))
+    check("HV-A105", "工时列表", client.ok(res))
 
-    res, status = client.post(
+    res, _ = client.post(
         "project/task/saveTaskWorkTime",
-        {"taskCode": task_code, "workTime": 60, "content": "gate-a work", "beginTime": "2030-01-01 09:00:00", "endTime": "2030-01-01 10:00:00"},
+        {"taskCode": task_code, "num": 60, "content": "gate-a work", "beginTime": "2030-01-01 09:00:00"},
     )
-    check_no500("HV-A94", "登记工时", res, status)
+    check("HV-A106", "登记工时", client.ok(res))
 
     res, _ = client.post("project/projectMember/index", {"projectCode": project_code, "page": 1, "pageSize": 20})
-    check("HV-A95", "项目成员分页", client.ok(res))
+    check("HV-A107", "项目成员分页", client.ok(res))
 
 
 def main() -> int:

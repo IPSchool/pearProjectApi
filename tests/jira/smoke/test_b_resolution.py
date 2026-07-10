@@ -94,6 +94,19 @@ def issue_resolution(issue_key: str) -> dict | None:
     return resolution if isinstance(resolution, dict) else None
 
 
+def transition_id_for(issue_key: str, target_name: str) -> str:
+    status, data = client.request("GET", f"/rest/api/3/issue/{issue_key}/transitions")
+    if status != 200 or not isinstance(data, dict):
+        return ""
+    for item in data.get("transitions") or []:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name") or item.get("to", {}).get("name")
+        if isinstance(name, str) and name.lower() == target_name.lower():
+            return str(item.get("id", ""))
+    return ""
+
+
 def main() -> int:
     print("=== Gate B-ζ Jira Resolution ===")
     print(f"BASE: {client.base}\n")
@@ -127,18 +140,22 @@ def main() -> int:
     else:
         bad("JIRA-L1-R02", "开放 Issue resolution=null", str(res_open))
 
-    status, _ = client.request(
-        "POST",
-        f"/rest/api/3/issue/{issue_key}/transitions",
-        body={
-            "transition": {"id": "31"},
-            "fields": {"resolution": {"name": "Fixed"}},
-        },
-    )
-    if status == 204:
-        ok("JIRA-L1-T04", "Transition Done + resolution 204")
+    done_id = transition_id_for(issue_key, "Done")
+    if not done_id:
+        bad("JIRA-L1-T04", "Transition Done + resolution 204", "no Done transition")
     else:
-        bad("JIRA-L1-T04", "Transition Done + resolution 204", f"HTTP {status}")
+        status, _ = client.request(
+            "POST",
+            f"/rest/api/3/issue/{issue_key}/transitions",
+            body={
+                "transition": {"id": done_id},
+                "fields": {"resolution": {"name": "Fixed"}},
+            },
+        )
+        if status == 204:
+            ok("JIRA-L1-T04", "Transition Done + resolution 204")
+        else:
+            bad("JIRA-L1-T04", "Transition Done + resolution 204", f"HTTP {status}")
 
     res_closed = issue_resolution(issue_key)
     if res_closed and res_closed.get("name") == "Fixed" and res_closed.get("id"):
@@ -146,16 +163,20 @@ def main() -> int:
     else:
         bad("JIRA-L1-R03", "关闭 Issue fields.resolution", str(res_closed))
 
-    status, _ = client.request(
-        "POST",
-        f"/rest/api/3/issue/{issue_key}/transitions",
-        body={"transition": {"id": "11"}},
-    )
-    res_reopen = issue_resolution(issue_key)
-    if status == 204 and res_reopen is None:
-        ok("JIRA-L1-T05", "Reopen transition + resolution=null")
+    reopen_id = transition_id_for(issue_key, "To Do")
+    if not reopen_id:
+        bad("JIRA-L1-T05", "Reopen transition + resolution=null", "no reopen transition")
     else:
-        bad("JIRA-L1-T05", "Reopen transition + resolution=null", f"HTTP {status} res={res_reopen}")
+        status, _ = client.request(
+            "POST",
+            f"/rest/api/3/issue/{issue_key}/transitions",
+            body={"transition": {"id": reopen_id}},
+        )
+        res_reopen = issue_resolution(issue_key)
+        if status == 204 and res_reopen is None:
+            ok("JIRA-L1-T05", "Reopen transition + resolution=null")
+        else:
+            bad("JIRA-L1-T05", "Reopen transition + resolution=null", f"HTTP {status} res={res_reopen}")
 
     client.request("DELETE", f"/rest/api/3/issue/{issue_key}")
 

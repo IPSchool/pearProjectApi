@@ -9,7 +9,7 @@ use service\JwtService;
 use service\NodeService;
 use service\RandomService;
 use think\facade\Db;
-use think\db\exception\DataNotFoundException;
+use think\facade\Cache;
 use think\db\exception\ModelNotFoundException;
 use think\exception\DbException;
 use think\exception\PDOException;
@@ -234,6 +234,10 @@ class Member extends CommonModel
 
     public static function logout()
     {
+        $member = getCurrentMember();
+        if (is_array($member) && !empty($member['code'])) {
+            Cache::delete('member:info:' . $member['code']);
+        }
         !empty($_SESSION) && $_SESSION = [];
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_unset();

@@ -1,23 +1,28 @@
-# Golden File（Layer 3）
+# Golden File / Schema（Layer 3）
 
-从 **Jira Cloud Developer 站点** 录制标准响应，供 Schema 对比。
+Pear 实现的 **结构基准**，用于下一阶段的 Jira 兼容开发防回归。不依赖 Jira Cloud 外网录制，CI 可直接跑。
 
-## 录制步骤
+## 运行
 
 ```bash
-source ../env.sh
-# 指向 Jira Cloud（非 Pear）
-curl -s -u "$JIRA_CLOUD_EMAIL:$JIRA_CLOUD_API_TOKEN" \
-  "$JIRA_CLOUD_BASE_URL/rest/api/3/myself" \
-  | jq . > L1-U01.myself.response.json
+bash tests/jira/golden/run.sh
+# 或合并门禁
+bash tests/gate-a/run.sh
 ```
 
-## B-α 必备文件（待录制）
+## 文件
 
-| 文件 | 来源用例 |
-|------|----------|
-| `L1-U01.myself.response.json` | JIRA-L1-U01 |
-| `L1-P02.project-TST.response.json` | JIRA-L1-P02 |
-| `L1-I01.create-issue.response.json` | JIRA-L1-I01 |
+| 文件 | 说明 |
+|------|------|
+| `schemas.yaml` | 10 个核心端点的 required 字段 + 类型契约 |
+| `test_l3_schema.py` | JIRA-L3-* 结构校验（HV 同级长期门禁） |
 
-实现阶段使用 `tests/jira/contract/` + diff 工具对比；允许差异写入 `golden/allow-diff.yaml`（待建）。
+## 扩展
+
+新增 Jira 端点时：
+
+1. 在 `schemas.yaml` 增加 `id` / `required` / `nested`
+2. 在 `contract/allowlist.yaml` 增加 L2 白名单（状态码 + 关键字段）
+3. 在 `smoke/` 增加行为用例（创建/更新/删除往返）
+
+可选：从 Jira Cloud 录制 JSON 到 `pear/` 子目录做 diff（需 `JIRA_CLOUD_*` 环境变量）。

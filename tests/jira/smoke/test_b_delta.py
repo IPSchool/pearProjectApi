@@ -159,11 +159,21 @@ def main() -> int:
     status, search = client.request("GET", "/rest/api/3/project/search?maxResults=1&startAt=0")
     check("JIRA-L1-D20", "project/search 分页", status == 200 and "total" in (search if isinstance(search, dict) else {}))
 
-    # OpenAPI lists Jira paths
+    # OpenAPI must list every Jira route from route/jira.php
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "gate-a", "lib"))
+    from route_inventory import jira_path_urls  # noqa: E402
+
     with urllib.request.urlopen(f"{client.base}/swagger-spec", timeout=15) as resp:
         spec = json.loads(resp.read().decode())
-    jira_paths = [p for p in spec.get("paths", {}) if p.startswith("/rest/api/")]
-    check("JIRA-L1-D21", "OpenAPI 含 Jira 路径", len(jira_paths) >= 15)
+    spec_paths = set(spec.get("paths", {}).keys())
+    expected = set(jira_path_urls())
+    missing = sorted(expected - spec_paths)
+    check(
+        "JIRA-L1-D21",
+        "OpenAPI Jira 路由 parity",
+        not missing,
+        f"missing {len(missing)}: {missing[:3]}",
+    )
 
     status, _ = client.request(
         "POST",

@@ -1,7 +1,7 @@
-# Gate B-α 端点白名单 — 实现 /rest/api/3 时须全部通过
-# 对应 JiraAPI测试设计.md §3.1 ~ §3.4
+# Gate B L2 — Jira REST 响应契约白名单（长期回归，非 smoke 占位）
+# 与 route/jira.php + swagger-spec 对齐；新增端点须同步登记
 
-phase: B-alpha
+phase: B-l2-contract
 
 auth:
   - id: JIRA-L1-A01
@@ -55,6 +55,27 @@ project:
     expect_status: 404
     expect_jira_error: true
 
+meta:
+  - id: JIRA-L1-M01
+    method: GET
+    path: /rest/api/3/field
+    auth: basic
+    expect_status: 200
+  - id: JIRA-L1-M02
+    method: GET
+    path: /rest/api/3/resolution
+    auth: basic
+    expect_status: 200
+
+search:
+  - id: JIRA-L1-S01
+    method: POST
+    path: /rest/api/3/search
+    auth: basic
+    body: jql
+    expect_status: 200
+    expect_fields: [issues, total]
+
 issue:
   - id: JIRA-L1-I01
     method: POST
@@ -75,3 +96,49 @@ issue:
     body: invalid
     expect_status: 400
     expect_jira_error: true
+
+comment:
+  - id: JIRA-L1-C01
+    method: GET
+    path: /rest/api/3/issue/{issueKey}/comment
+    auth: basic
+    expect_status: 200
+    expect_fields: [comments]
+
+transition:
+  - id: JIRA-L1-T01
+    method: GET
+    path: /rest/api/3/issue/{issueKey}/transitions
+    auth: basic
+    expect_status: 200
+    expect_fields: [transitions]
+
+version:
+  - id: JIRA-L1-VN02
+    method: GET
+    path: /rest/api/3/project/{projectKey}/versions
+    auth: basic
+    expect_status: 200
+
+component:
+  - id: JIRA-L1-CM02
+    method: GET
+    path: /rest/api/3/project/{projectKey}/components
+    auth: basic
+    expect_status: 200
+
+changelog:
+  - id: JIRA-L1-CL01
+    method: GET
+    path: /rest/api/3/issue/{issueKey}/changelog
+    auth: basic
+    expect_status: 200
+    expect_fields: [histories, total]
+
+worklog:
+  - id: JIRA-L1-WL01
+    method: GET
+    path: /rest/api/3/issue/{issueKey}/worklog
+    auth: basic
+    expect_status: 200
+    expect_fields: [worklogs, total]

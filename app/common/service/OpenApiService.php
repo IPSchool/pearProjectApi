@@ -96,38 +96,51 @@ class OpenApiService
 
     private function jiraPaths(): array
     {
-        $defs = [
-            ['get', 'rest/api/2/serverInfo', 'ServerInfo', 'index', false],
-            ['get', 'rest/api/latest/serverInfo', 'ServerInfo', 'index', false],
-            ['get', 'rest/api/3/serverInfo', 'ServerInfo', 'index', false],
-            ['get', 'rest/api/3/field', 'Meta', 'fields', true],
-            ['get', 'rest/api/3/myself', 'Myself', 'index', true],
-            ['get', 'rest/api/3/user/search', 'User', 'search', true],
-            ['get', 'rest/api/3/user', 'User', 'read', true],
-            ['get', 'rest/api/3/project/search', 'Project', 'search', true],
-            ['post', 'rest/api/3/project', 'Project', 'create', true],
-            ['get', 'rest/api/3/project/{projectKey}', 'Project', 'read', true],
-            ['post', 'rest/api/3/search', 'Search', 'index', true],
-            ['get', 'rest/api/3/issue/{issueIdOrKey}/comment', 'IssueComment', 'index', true],
-            ['post', 'rest/api/3/issue/{issueIdOrKey}/comment', 'IssueComment', 'create', true],
-            ['get', 'rest/api/3/issue/{issueIdOrKey}/worklog', 'IssueWorklog', 'index', true],
-            ['post', 'rest/api/3/issue/{issueIdOrKey}/worklog', 'IssueWorklog', 'create', true],
-            ['post', 'rest/api/3/issue/{issueIdOrKey}/attachments', 'IssueAttachment', 'create', true],
-            ['get', 'rest/api/3/issue/{issueIdOrKey}/transitions', 'IssueTransition', 'index', true],
-            ['post', 'rest/api/3/issue/{issueIdOrKey}/transitions', 'IssueTransition', 'apply', true],
-            ['post', 'rest/api/3/issue', 'Issue', 'create', true],
-            ['get', 'rest/api/3/issue/{issueIdOrKey}', 'Issue', 'read', true],
-            ['put', 'rest/api/3/issue/{issueIdOrKey}', 'Issue', 'update', true],
-            ['delete', 'rest/api/3/issue/{issueIdOrKey}', 'Issue', 'delete', true],
-        ];
+        $file = root_path() . 'route/jira.php';
+        if (!is_readable($file)) {
+            return [];
+        }
 
-        $paths = [];
-        foreach ($defs as [$method, $path, $controller, $action, $auth]) {
-            $url = '/' . $path;
+        $content = file_get_contents($file);
+        $lines   = preg_split('/\r\n|\r|\n/', $content) ?: [];
+        $paths   = [];
+        $groupPrefix = '';
+
+        foreach ($lines as $line) {
+            if (preg_match("/Route::group\\('([^']+)'/", $line, $gm)) {
+                $groupPrefix = rtrim($gm[1], '/');
+                continue;
+            }
+            if (str_contains($line, '})->middleware')) {
+                $groupPrefix = '';
+                continue;
+            }
+            if (!preg_match(
+                "/Route::(get|post|put|delete)\\('([^']+)',\\s*'([^']+)\\\\([^@]+)@(\\w+)'/",
+                $line,
+                $rm
+            )) {
+                continue;
+            }
+
+            [, $verb, $subPath, , $controller, $action] = $rm;
+            $subPath = ltrim($subPath, '/');
+            $fullPath = $groupPrefix !== '' ? $groupPrefix . '/' . $subPath : $subPath;
+            $fullPath = '/' . preg_replace('#/+#', '/', $fullPath);
+            $url = '/' . ltrim($fullPath, '/');
+
             if (!isset($paths[$url])) {
                 $paths[$url] = [];
             }
-            $paths[$url][strtolower($method)] = $this->operation($controller, $action, $path, 'jira', $auth, $method);
+            $auth = !str_contains($line, 'ServerInfo@');
+            $paths[$url][strtolower($verb)] = $this->operation(
+                basename(str_replace('\\', '/', $controller)),
+                $action,
+                ltrim($fullPath, '/'),
+                'jira',
+                $auth,
+                strtoupper($verb)
+            );
         }
 
         return $paths;

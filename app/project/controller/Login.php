@@ -17,6 +17,7 @@ use think\db\exception\DataNotFoundException;
 use think\db\exception\ModelNotFoundException;
 use think\exception\DbException;
 use think\exception\PDOException;
+use think\facade\Cache;
 use think\facade\Log;
 use think\facade\Request;
 use think\facade\Validate;
@@ -405,6 +406,16 @@ class Login extends BasicApi
      */
     public function _out()
     {
+        $authorization = Request::header('Authorization');
+        if ($authorization) {
+            $parts = explode(' ', trim($authorization), 2);
+            if (count($parts) === 2 && $parts[1] !== '') {
+                $encodeData = JwtService::decodeToken($parts[1]);
+                if (!isError($encodeData) && !empty($encodeData->data->code)) {
+                    Cache::delete('member:info:' . $encodeData->data->code);
+                }
+            }
+        }
         Member::logout();
         $this->success('');
     }

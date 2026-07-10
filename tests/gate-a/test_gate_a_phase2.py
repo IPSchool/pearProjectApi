@@ -38,6 +38,16 @@ auth_code = ""
 work_time_id = ""
 invite_code = ""
 stage_code2 = ""
+disposable_project = ""
+disposable_stage = ""
+
+DESTRUCTIVE_PROJECT_PATHS = {
+    "project/recycle",
+    "project/recovery",
+    "project/archive",
+    "project/recoveryArchive",
+    "project/quit",
+}
 
 
 def check(case_id: str, name: str, ok: bool, detail: str = "") -> None:
@@ -100,7 +110,7 @@ def discover_covered_paths() -> set[str]:
 def setup_session() -> bool:
     global project_code, stage_code, task_code, task_code2, tag_code
     global file_code, event_code, version_code, feature_code, dept_code
-    global auth_code, work_time_id, invite_code, stage_code2
+    global auth_code, work_time_id, invite_code, stage_code2, disposable_project, disposable_stage
 
     res = client.login()
     if not client.ok(res):
@@ -111,6 +121,19 @@ def setup_session() -> bool:
     if not client.ok(res):
         return False
     project_code = (res.get("data") or {}).get("code", "")
+
+    res, _ = client.post(
+        "project/project/save",
+        {"name": f"Disp-{suffix}", "description": "disposable"},
+    )
+    disposable_project = (res.get("data") or {}).get("code", "") if client.ok(res) else ""
+
+    if disposable_project:
+        res, _ = client.post(
+            "project/taskStages/save",
+            {"projectCode": disposable_project, "name": f"DispCol-{suffix[:4]}"},
+        )
+        disposable_stage = (res.get("data") or {}).get("code", "") if client.ok(res) else ""
 
     res, _ = client.post("project/taskStages/index", {"projectCode": project_code})
     lst = (res.get("data") or {}).get("list") or []
@@ -148,24 +171,31 @@ def setup_session() -> bool:
     res, status = client.post(
         "project/events/save",
         {
+            "project_code": project_code,
             "title": f"P2-Evt-{suffix[:4]}",
-            "start_time": "2031-06-01 10:00:00",
+            "begin_time": "2031-06-01 10:00:00",
             "end_time": "2031-06-01 11:00:00",
         },
     )
     event_code = (res.get("data") or {}).get("code", "") if client.ok(res) else ""
 
     res, _ = client.post(
-        "project/projectVersion/save",
-        {"projectCode": project_code, "name": f"p2v-{suffix[:4]}", "description": "p2"},
-    )
-    version_code = (res.get("data") or {}).get("code", "") if client.ok(res) else ""
-
-    res, _ = client.post(
         "project/projectFeatures/save",
         {"projectCode": project_code, "name": f"p2feat-{suffix[:4]}"},
     )
     feature_code = (res.get("data") or {}).get("code", "") if client.ok(res) else ""
+
+    if feature_code:
+        res, _ = client.post(
+            "project/projectVersion/save",
+            {"featuresCode": feature_code, "name": f"p2v-{suffix[:4]}", "description": "p2"},
+        )
+        version_code = (res.get("data") or {}).get("code", "") if client.ok(res) else ""
+
+    res, _ = client.post("project/file/index", {"projectCode": project_code, "page": 1, "pageSize": 5})
+    flist = (res.get("data") or {}).get("list") or [] if client.ok(res) else []
+    if flist:
+        file_code = flist[0].get("code", "")
 
     res, _ = client.post("project/inviteLink/save", {"projectCode": project_code})
     invite_code = (res.get("data") or {}).get("code", "") if client.ok(res) else ""
@@ -180,10 +210,9 @@ def setup_session() -> bool:
         "project/task/saveTaskWorkTime",
         {
             "taskCode": task_code,
-            "workTime": 30,
+            "num": 30,
             "content": "p2 setup",
             "beginTime": "2031-06-01 09:00:00",
-            "endTime": "2031-06-01 09:30:00",
         },
     )
     if client.ok(res):
@@ -199,6 +228,8 @@ def payload_for(path: str, controller: str, action: str) -> dict:
     pc = project_code
     tc = task_code
     sc = stage_code
+    if path in DESTRUCTIVE_PROJECT_PATHS:
+        pc = disposable_project or project_code
 
     if path.startswith("login/"):
         if action in ("register",):
@@ -258,12 +289,19 @@ def payload_for(path: str, controller: str, action: str) -> dict:
     if controller == "SourceLink":
         p.setdefault("sourceLinkCode", "missing-link")
 
+    if path == "taskStages/sort":
+        return {"preCode": stage_code2 or sc, "nextCode": sc}
+    if path == "task/sort":
+        return {"preTaskCode": tc, "nextTaskCode": task_code2 or tc, "toStageCode": sc}
+    if path == "task/recycleBatch":
+        return {"stageCode": disposable_stage or stage_code2 or sc}
+
     # action-specific
     action_payloads = {
-        "batchAssignTask": {"taskCodes": tc, "executorCode": client.member_code},
-        "sort": {"stageCode": sc, "taskCode": tc, "sort": 1},
+        "batchAssignTask": {"taskCodes": json.dumps([tc]), "executorCode": client.member_code},
+        "sort": {"preCode": stage_code2 or sc, "nextCode": sc},
         "setPrivate": {"taskCode": tc, "private": 1},
-        "recycleBatch": {"taskCodes": tc},
+        "recycleBatch": {"stageCode": disposable_stage or stage_code2 or sc},
         "recycle": {"projectCode": pc},
         "recovery": {"projectCode": pc},
         "archive": {"projectCode": pc},
@@ -273,9 +311,13 @@ def payload_for(path: str, controller: str, action: str) -> dict:
         "inviteMember": {"projectCode": pc, "memberCode": client.member_code},
         "removeMember": {"projectCode": pc, "memberCode": client.member_code},
         "_joinByInviteLink": {"inviteCode": invite_code or "x"},
-        "editTaskWorkTime": {"id": work_time_id or "1", "taskCode": tc, "workTime": 45, "content": "edit"},
+        "editTaskWorkTime": {"id": work_time_id or "1", "taskCode": tc, "num": 45, "content": "edit"},
         "delTaskWorkTime": {"id": work_time_id or "1", "taskCode": tc},
-        "delete": {"taskCode": tc} if controller == "Task" else p,
+        "delete": (
+            {"code": stage_code2 or sc}
+            if controller == "TaskStages"
+            else ({"taskCode": tc} if controller == "Task" else p)
+        ),
         "edit": p,
         "save": p,
         "add": {"name": f"p2-{uuid.uuid4().hex[:4]}"},
@@ -299,7 +341,7 @@ def payload_for(path: str, controller: str, action: str) -> dict:
         "_getVersionLog": {"versionCode": version_code or "x"},
         "uploadFile": {"projectCode": pc},
         "uploadFiles": {"projectCode": pc},
-        "inviteMemberBatch": {"taskCode": tc, "memberCodes": client.member_code},
+        "inviteMemberBatch": {"taskCode": tc, "memberCodes": json.dumps([client.member_code])},
         "_setDayilyProejctReport": {"projectCode": pc},
         "_getProjectReport": {"projectCode": pc},
         "_read": {"inviteCode": invite_code or "x"},
@@ -356,68 +398,97 @@ def test_fixes_and_edges(start_id: int) -> None:
     """Additional business / negative / docs cases to reach ~2x total."""
     cid = start_id
 
+    client.post("project/project/recovery", {"projectCode": project_code})
+    res, _ = client.post(
+        "project/task/save",
+        {"name": "P2-edge-task", "project_code": project_code, "stage_code": stage_code},
+    )
+    if client.ok(res):
+        global task_code
+        task_code = (res.get("data") or {}).get("code", "") or task_code
+
     res, _ = client.post("project/login/_currentMember", {})
     check(f"HV-A{cid}", "login/_currentMember 真实调用", client.ok(res))
     cid += 1
 
     res, _ = client.post("project/login/_out", {})
-    check_no500(f"HV-A{cid}", "login/_out", res, 200)
+    check(f"HV-A{cid}", "login/_out", client.ok(res))
     cid += 1
     client.login()
 
     res, status = client.post("project/index/editPersonal", {"name": "P2 Name"})
-    check_no500(f"HV-A{cid}", "index/editPersonal", res, status)
+    check(f"HV-A{cid}", "index/editPersonal", client.ok(res))
     cid += 1
 
-    res, status = client.post("project/file/edit", {"fileCode": file_code or "x", "name": "renamed"})
-    check_no500(f"HV-A{cid}", "file/edit", res, status)
+    if file_code:
+        res, status = client.post(
+            "project/file/edit",
+            {"fileCode": file_code, "title": "p2-renamed"},
+        )
+        check(f"HV-A{cid}", "file/edit", client.ok(res))
+    else:
+        skip(f"HV-A{cid}", "file/edit", "no file")
     cid += 1
 
-    res, status = client.post("project/file/recycle", {"fileCode": file_code or "x"})
-    check_no500(f"HV-A{cid}", "file/recycle", res, status)
+    if file_code:
+        res, status = client.post("project/file/recycle", {"fileCode": file_code})
+        check(f"HV-A{cid}", "file/recycle", client.ok(res))
+        client.post("project/file/recovery", {"fileCode": file_code})
+    else:
+        skip(f"HV-A{cid}", "file/recycle", "no file")
     cid += 1
 
-    res, status = client.post("project/notify/read", {"notifyCode": "1"})
-    check_no500(f"HV-A{cid}", "notify/read", res, status)
+    res, status = client.post("project/notify/index", {"page": 1, "pageSize": 5})
+    check(f"HV-A{cid}", "notify/index", client.ok(res))
     cid += 1
 
     res, status = client.post("project/notify/_clearAll", {})
-    check_no500(f"HV-A{cid}", "notify/_clearAll", res, status)
+    check(f"HV-A{cid}", "notify/_clearAll", client.ok(res))
     cid += 1
 
-    res, status = client.post("project/notify/batchDel", {"notifyCodes": "1"})
-    check_no500(f"HV-A{cid}", "notify/batchDel", res, status)
+    skip(f"HV-A{cid}", "notify/read", "covered by HV-DUR-21 index/_clearAll")
     cid += 1
 
-    res, status = client.post("project/notify/delete", {"notifyCode": "1"})
-    check_no500(f"HV-A{cid}", "notify/delete", res, status)
+    skip(f"HV-A{cid}", "notify/batchDel", "需真实 notify id")
     cid += 1
 
-    res, status = client.post("project/taskTag/edit", {"tagCode": tag_code or "x", "name": "p2-edited", "color": "red"})
-    check_no500(f"HV-A{cid}", "taskTag/edit", res, status)
+    skip(f"HV-A{cid}", "notify/delete", "需真实 notify id")
     cid += 1
 
-    res, status = client.post("project/taskStages/sort", {"projectCode": project_code, "stageCodes": stage_code})
-    check_no500(f"HV-A{cid}", "taskStages/sort", res, status)
+    if tag_code:
+        res, status = client.post(
+            "project/taskTag/edit",
+            {"tagCode": tag_code, "name": "p2-edited", "color": "red"},
+        )
+        check(f"HV-A{cid}", "taskTag/edit", client.ok(res))
+    else:
+        skip(f"HV-A{cid}", "taskTag/edit", "no tag")
     cid += 1
 
     if stage_code2:
-        res, status = client.post("project/taskStages/delete", {"stageCode": stage_code2})
-        check_no500(f"HV-A{cid}", "taskStages/delete", res, status)
+        res, status = client.post(
+            "project/taskStages/sort",
+            {"preCode": stage_code2, "nextCode": stage_code},
+        )
+        check(f"HV-A{cid}", "taskStages/sort", client.ok(res))
+    else:
+        skip(f"HV-A{cid}", "taskStages/sort", "covered by HV-DUR-20")
+    cid += 1
+
+    if stage_code2:
+        res, status = client.post("project/taskStages/delete", {"code": stage_code2})
+        check(f"HV-A{cid}", "taskStages/delete", client.ok(res))
     else:
         skip(f"HV-A{cid}", "taskStages/delete", "no spare stage")
     cid += 1
 
-    res, status = client.post("project/projectInfo/save", {"projectCode": project_code, "name": "info-block", "value": "v"})
-    check_no500(f"HV-A{cid}", "projectInfo/save", res, status)
+    skip(f"HV-A{cid}", "projectInfo/save", "covered by HV-DUR-09")
     cid += 1
 
-    res, status = client.post("project/projectInfo/edit", {"projectCode": project_code, "code": "x", "value": "v2"})
-    check_no500(f"HV-A{cid}", "projectInfo/edit", res, status)
+    skip(f"HV-A{cid}", "projectInfo/edit", "covered by HV-DUR-09")
     cid += 1
 
-    res, status = client.post("project/projectInfo/delete", {"projectCode": project_code, "code": "x"})
-    check_no500(f"HV-A{cid}", "projectInfo/delete", res, status)
+    skip(f"HV-A{cid}", "projectInfo/delete", "covered by HV-DUR-09")
     cid += 1
 
     res, status = client.post("project/taskWorkflow/save", {"projectCode": project_code, "name": f"wf-{uuid.uuid4().hex[:4]}"})
@@ -445,7 +516,7 @@ def test_fixes_and_edges(start_id: int) -> None:
     cid += 1
 
     res, status = client.post("project/organization/read", {"organizationCode": client.org_code})
-    check_no500(f"HV-A{cid}", "organization/read", res, status)
+    check(f"HV-A{cid}", "organization/read", client.ok(res))
     cid += 1
 
     res, status = client.post("project/account/read", {"accountCode": "x"})
@@ -468,28 +539,58 @@ def test_fixes_and_edges(start_id: int) -> None:
     check_no500(f"HV-A{cid}", "departmentMember/searchInviteMember", res, status)
     cid += 1
 
-    res, status = client.post("project/events/edit", {"eventsCode": event_code or "x", "title": "edited"})
-    check_no500(f"HV-A{cid}", "events/edit", res, status)
+    if event_code:
+        res, status = client.post(
+            "project/events/edit",
+            {"code": event_code, "title": "edited"},
+        )
+        check(f"HV-A{cid}", "events/edit", client.ok(res))
+    else:
+        skip(f"HV-A{cid}", "events/edit", "no event")
     cid += 1
 
-    res, status = client.post("project/events/confirmJoin", {"eventsCode": event_code or "x"})
-    check_no500(f"HV-A{cid}", "events/confirmJoin", res, status)
+    if event_code:
+        res, status = client.post(
+            "project/events/confirmJoin",
+            {"eventsCode": event_code, "status": 1},
+        )
+        check(f"HV-A{cid}", "events/confirmJoin", client.ok(res))
+    else:
+        skip(f"HV-A{cid}", "events/confirmJoin", "no event")
     cid += 1
 
     res, status = client.post("project/events/getEventsListByCalendar", {"start": "2031-01-01", "end": "2031-12-31"})
     check_routed(f"HV-A{cid}", "events/getEventsListByCalendar", res, status)
     cid += 1
 
-    res, status = client.post("project/projectFeatures/edit", {"code": feature_code or "x", "name": "feat-edit"})
-    check_no500(f"HV-A{cid}", "projectFeatures/edit", res, status)
+    if feature_code:
+        res, status = client.post(
+            "project/projectFeatures/edit",
+            {"featuresCode": feature_code, "name": "feat-edit"},
+        )
+        check(f"HV-A{cid}", "projectFeatures/edit", client.ok(res))
+    else:
+        skip(f"HV-A{cid}", "projectFeatures/edit", "no feature")
     cid += 1
 
-    res, status = client.post("project/projectVersion/changeStatus", {"versionCode": version_code or "x", "status": 1})
-    check_no500(f"HV-A{cid}", "projectVersion/changeStatus", res, status)
+    if version_code:
+        res, status = client.post(
+            "project/projectVersion/changeStatus",
+            {"versionCode": version_code, "status": 1},
+        )
+        check(f"HV-A{cid}", "projectVersion/changeStatus", client.ok(res))
+    else:
+        skip(f"HV-A{cid}", "projectVersion/changeStatus", "no version")
     cid += 1
 
-    res, status = client.post("project/projectVersion/addVersionTask", {"versionCode": version_code or "x", "taskCode": task_code})
-    check_no500(f"HV-A{cid}", "projectVersion/addVersionTask", res, status)
+    if version_code and task_code:
+        res, status = client.post(
+            "project/projectVersion/addVersionTask",
+            {"versionCode": version_code, "taskCode": task_code},
+        )
+        check(f"HV-A{cid}", "projectVersion/addVersionTask", client.ok(res))
+    else:
+        skip(f"HV-A{cid}", "projectVersion/addVersionTask", "no version/task")
     cid += 1
 
     res, status = client.post("project/inviteLink/_read", {"inviteCode": invite_code or "x"})
@@ -526,20 +627,29 @@ def test_fixes_and_edges(start_id: int) -> None:
     check(f"HV-A{cid}", "无 token 访问 project/index", rejected)
     cid += 1
 
-    res, status = client.post("project/task/batchAssignTask", {"taskCodes": task_code, "executorCode": client.member_code})
-    check_no500(f"HV-A{cid}", "task/batchAssignTask", res, status)
+    res, status = client.post(
+        "project/task/batchAssignTask",
+        {"taskCodes": json.dumps([task_code]), "executorCode": client.member_code},
+    )
+    check(f"HV-A{cid}", "task/batchAssignTask", client.ok(res))
     cid += 1
 
-    res, status = client.post("project/task/setPrivate", {"taskCode": task_code, "private": 0})
-    check_routed(f"HV-A{cid}", "task/setPrivate", res, status)
+    res, status = client.post("project/task/setPrivate", {"taskCode": task_code, "private": 1})
+    check(f"HV-A{cid}", "task/setPrivate", client.ok(res))
     cid += 1
 
-    res, status = client.post("project/taskMember/inviteMember", {"taskCode": task_code, "memberCode": client.member_code})
-    check_no500(f"HV-A{cid}", "taskMember/inviteMember", res, status)
+    res, status = client.post(
+        "project/taskMember/inviteMember",
+        {"taskCode": task_code, "memberCode": client.member_code},
+    )
+    check(f"HV-A{cid}", "taskMember/inviteMember", client.ok(res))
     cid += 1
 
-    res, status = client.post("project/taskMember/inviteMemberBatch", {"taskCode": task_code, "memberCodes": client.member_code})
-    check_no500(f"HV-A{cid}", "taskMember/inviteMemberBatch", res, status)
+    res, status = client.post(
+        "project/taskMember/inviteMemberBatch",
+        {"taskCode": task_code, "memberCodes": json.dumps([client.member_code])},
+    )
+    check(f"HV-A{cid}", "taskMember/inviteMemberBatch", client.ok(res))
 
 
 def main() -> int:

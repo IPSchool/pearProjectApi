@@ -17,6 +17,18 @@ echo "========== Gate A Extended (HV-A18~A95) =========="
 python3 "$ROOT/tests/gate-a/test_gate_a_extended.py" || fail=1
 
 echo ""
+echo "========== Gate A Durable (HV-DUR) =========="
+python3 "$ROOT/tests/gate-a/test_gate_a_durable.py" || fail=1
+
+echo ""
+echo "========== Gate A Durable Gaps (HV-DUR-13+) =========="
+python3 "$ROOT/tests/gate-a/test_gate_a_durable_gaps.py" || fail=1
+
+echo ""
+echo "========== Gate A OpenAPI Parity (HV-OAPI) =========="
+python3 "$ROOT/tests/gate-a/test_gate_a_openapi.py" || fail=1
+
+echo ""
 echo "========== Gate A Phase 2 (HV-A96+) =========="
 python3 "$ROOT/tests/gate-a/test_gate_a_phase2.py" || fail=1
 

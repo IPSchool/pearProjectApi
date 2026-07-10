@@ -104,11 +104,19 @@ def main() -> int:
         bad("JIRA-L1-VN02", "GET project versions", f"HTTP {status}")
 
     # --- Changelog ---
-    status, _ = client.request(
-        "POST",
-        f"/rest/api/3/issue/{issue_key}/transitions",
-        body={"transition": {"id": "31"}},
-    )
+    done_id = ""
+    status, transitions = client.request("GET", f"/rest/api/3/issue/{issue_key}/transitions")
+    if status == 200 and isinstance(transitions, dict):
+        for item in transitions.get("transitions") or []:
+            if isinstance(item, dict) and (item.get("name") or "").lower() == "done":
+                done_id = str(item.get("id", ""))
+                break
+    if done_id:
+        client.request(
+            "POST",
+            f"/rest/api/3/issue/{issue_key}/transitions",
+            body={"transition": {"id": done_id}},
+        )
     status, changelog = client.request("GET", f"/rest/api/3/issue/{issue_key}/changelog")
     histories = changelog.get("histories", []) if isinstance(changelog, dict) else []
     if status == 200 and isinstance(histories, list) and changelog.get("total", 0) >= 1:

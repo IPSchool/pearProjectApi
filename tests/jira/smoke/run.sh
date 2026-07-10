@@ -15,7 +15,7 @@ echo ""
 
 fail=0
 
-bash "$DIR/smoke/curl-myself.sh" || true
+bash "$DIR/smoke/curl-myself.sh" || fail=1
 echo ""
 
 python3 "$DIR/smoke/test_b_alpha.py" || fail=1
@@ -28,6 +28,9 @@ python3 "$DIR/smoke/test_jira_python_extended.py" || fail=1
 python3 "$DIR/smoke/test_b_epsilon.py" || fail=1
 python3 "$DIR/smoke/test_b_resolution.py" || fail=1
 python3 "$DIR/smoke/test_b_eta.py" || fail=1
+
+bash "$DIR/contract/run.sh" || fail=1
+bash "$DIR/golden/run.sh" || fail=1
 
 if [ "$fail" -ne 0 ]; then
   exit 1

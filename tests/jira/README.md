@@ -18,9 +18,13 @@ tests/jira/
 │   ├── test_jira_python.py
 │   └── test_jira_python_extended.py  # L4（7）
 ├── contract/
-│   └── allowlist.yaml   # B-α 端点清单
-└── golden/              # Jira Cloud 录制响应（Golden File）
-    └── README.md
+│   ├── allowlist.yaml   # L2 端点白名单
+│   ├── test_l2_contract.py
+│   └── run.sh
+└── golden/              # L3 结构契约（schemas.yaml）
+    ├── schemas.yaml
+    ├── test_l3_schema.py
+    └── run.sh
 ```
 
 ## 快速开始
@@ -37,6 +41,10 @@ cp tests/jira/env.sh.example tests/jira/env.sh
 
 # 3. 运行 Gate B smoke
 bash tests/jira/smoke/run.sh
+
+# L2 + L3 契约（已并入 smoke/run.sh）
+bash tests/jira/contract/run.sh
+bash tests/jira/golden/run.sh
 
 # 或合并 Gate A + B
 bash tests/gate-a/run.sh
@@ -59,6 +67,8 @@ bash tests/gate-a/run.sh
 | **B-β** | `test_b_beta.py` | 11 | JQL Search + Comment + Transition |
 | **B-γ** | `test_b_gamma.py` | 22 | Agile Board/Sprint + Worklog + Version |
 | **B-δ** | `test_b_delta.py` | 26 | Webhook/Filter/Permission + Swagger 可达 |
+| **L2 Contract** | `contract/test_l2_contract.py` | 23 | allowlist 白名单 + 响应结构 |
+| **L3 Schema** | `golden/test_l3_schema.py` | 10 | schemas.yaml 字段/类型契约 |
 | **L4** | `test_jira_python*.py` | 7 | jira-python 客户端零修改冒烟 |
 
 ## 相关

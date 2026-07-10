@@ -2,13 +2,16 @@
 
 Gate A 验证 **master TP6** 上 Legacy `project/*` 接口不回退。与 Gate B 共用 `docker/jira`（8090）。
 
-| 套件 | 脚本 | 用例 ID | 通过 |
+| 套件 | 脚本 | 用例 ID | 说明 |
 |------|------|---------|------|
-| Core | `test_gate_a.py` | HV-A01 ~ A17 | 17 |
-| Extended | `test_gate_a_extended.py` | HV-A18 ~ A95 | 75 |
-| Phase 2 | `test_gate_a_phase2.py` | HV-A96+ | 150（+6 skip） |
+| Core | `test_gate_a.py` | HV-A01 ~ A17 | 核心 CRUD / 登录 |
+| Extended | `test_gate_a_extended.py` | HV-A18 ~ A107 | 模块覆盖 + 语义断言 |
+| Durable | `test_gate_a_durable.py` | HV-DUR-01 ~ 12 | 长期语义往返（非 check_no500） |
+| Durable Gaps | `test_gate_a_durable_gaps.py` | HV-DUR-13 ~ 22 | Phase-2 弱路由升级为语义断言 |
+| OpenAPI | `test_gate_a_openapi.py` | HV-OAPI-01 ~ 09 | swagger-spec 与 route/*.php 一致 |
+| Phase 2 | `test_gate_a_phase2.py` | HV-A96+ | 路由差集 + 边界（逐步升级为语义） |
 
-**Phase 2 策略**：扫描 `route/project.php`，与 Core + Extended 已覆盖路由做差集，每条未覆盖路由 1 用例（`check_routed`）；另含 OpenAPI、无 token 401、`_currentMember` 等边界用例。multipart 上传类端点跳过（由 HV-A11 覆盖）。
+**Durable / L2 / L3** 为长期稳定性门禁：断言业务结果与响应结构，而非仅「路由可达 / 非 500」。
 
 ## 运行
 

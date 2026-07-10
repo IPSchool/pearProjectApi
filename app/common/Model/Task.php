@@ -645,7 +645,15 @@ class Task extends CommonModel
             'icon' => 'file-text',
         ];
         // mentions 通知在 TP6 迁移后暂未恢复，先落库评论
-        return (bool)ProjectLog::create($logData);
+        $created = ProjectLog::create($logData);
+        if (!$created) {
+            return false;
+        }
+        return [
+            'code'        => $logData['code'],
+            'content'     => $logData['content'],
+            'create_time' => $logData['create_time'],
+        ];
     }
 
     /**
