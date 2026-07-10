@@ -26,7 +26,11 @@ Route::group('rest/api/3', function () use ($issueKeyPattern) {
     Route::get('user', 'app\jira\controller\v3\User@index');
     Route::get('project/search', 'app\jira\controller\v3\Project@search');
     Route::post('project', 'app\jira\controller\v3\Project@create');
+    Route::get('project/:projectKey/versions', 'app\jira\controller\v3\Project@versions');
+    Route::get('project/:projectKey/components', 'app\jira\controller\v3\Project@components');
     Route::get('project/:projectKey', 'app\jira\controller\v3\Project@read');
+    Route::post('version', 'app\jira\controller\v3\Version@create');
+    Route::post('component', 'app\jira\controller\v3\Component@create');
     Route::post('search', 'app\jira\controller\v3\Search@index');
 
     Route::get('issue/:issueIdOrKey/comment', 'app\jira\controller\v3\IssueComment@index')
@@ -42,6 +46,8 @@ Route::group('rest/api/3', function () use ($issueKeyPattern) {
     Route::get('issue/:issueIdOrKey/transitions', 'app\jira\controller\v3\IssueTransition@index')
         ->pattern($issueKeyPattern);
     Route::post('issue/:issueIdOrKey/transitions', 'app\jira\controller\v3\IssueTransition@apply')
+        ->pattern($issueKeyPattern);
+    Route::get('issue/:issueIdOrKey/changelog', 'app\jira\controller\v3\IssueChangelog@index')
         ->pattern($issueKeyPattern);
     Route::get('issue/:issueIdOrKey/watchers', 'app\jira\controller\v3\IssueWatcher@index')
         ->pattern($issueKeyPattern);

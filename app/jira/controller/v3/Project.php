@@ -4,6 +4,8 @@ namespace app\jira\controller\v3;
 
 use app\jira\service\JiraProjectService;
 use app\jira\service\JiraResponse;
+use app\jira\service\JiraVersionService;
+use app\jira\service\JiraComponentService;
 use think\Request;
 
 class Project
@@ -49,5 +51,29 @@ class Project
         }
 
         return JiraResponse::json($result['data'], 201);
+    }
+
+    public function versions(Request $request, string $projectKey = '')
+    {
+        $project = JiraProjectService::findByKey($projectKey);
+        if (!$project) {
+            return JiraResponse::notFound(
+                "No project could be found with key '" . strtoupper($projectKey) . "'."
+            );
+        }
+
+        return JiraResponse::json(JiraVersionService::listForProject($project));
+    }
+
+    public function components(Request $request, string $projectKey = '')
+    {
+        $project = JiraProjectService::findByKey($projectKey);
+        if (!$project) {
+            return JiraResponse::notFound(
+                "No project could be found with key '" . strtoupper($projectKey) . "'."
+            );
+        }
+
+        return JiraResponse::json(JiraComponentService::listForProject($project));
     }
 }

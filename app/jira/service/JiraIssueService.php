@@ -10,6 +10,8 @@ use think\facade\Db;
 
 class JiraIssueService
 {
+    public const TASK_READ_FIELDS = 'id,code,project_code,name,pri,execute_status,description,create_by,done_by,done_time,create_time,assign_to,deleted,stage_code,done,begin_time,end_time,pcode,sort,id_num,status,resolution,version_code,features_code';
+
     public static function parseIssueKey(string $issueIdOrKey): ?array
     {
         $issueIdOrKey = trim($issueIdOrKey);
@@ -19,7 +21,7 @@ class JiraIssueService
 
         if (ctype_digit($issueIdOrKey)) {
             $task = Task::where(['id' => (int) $issueIdOrKey, 'deleted' => 0])
-                ->field('id,code,project_code,name,pri,execute_status,description,create_by,done_by,done_time,create_time,assign_to,deleted,stage_code,done,begin_time,end_time,pcode,sort,id_num,status,resolution')
+                ->field(self::TASK_READ_FIELDS)
                 ->find();
             if (!$task) {
                 return null;
@@ -54,7 +56,7 @@ class JiraIssueService
             'project_code' => $project['code'],
             'id_num'       => $idNum,
             'deleted'      => 0,
-        ])->field('id,code,project_code,name,pri,execute_status,description,create_by,done_by,done_time,create_time,assign_to,deleted,stage_code,done,begin_time,end_time,pcode,sort,id_num,status,resolution')->find();
+        ])->field(self::TASK_READ_FIELDS)->find();
         if (!$task) {
             return null;
         }
@@ -77,7 +79,7 @@ class JiraIssueService
             'id'     => (string) $task['id'],
             'self'   => request()->domain() . '/rest/api/3/issue/' . $issueKey,
             'key'    => $issueKey,
-            'fields' => [
+            'fields' => array_merge([
                 'summary'   => $task['name'],
                 'project'   => JiraProjectService::toJiraProject($project),
                 'issuetype' => [
@@ -109,7 +111,7 @@ class JiraIssueService
                     'isWatching' => false,
                 ],
                 'issuelinks' => JiraIssueLinkService::listForTask($task),
-            ],
+            ], JiraIssueFieldsService::standardFields($task, $project, $issueKey)),
         ];
     }
 
@@ -184,7 +186,7 @@ class JiraIssueService
 
         $issuePayload = self::toJiraIssue(
             Task::where(['code' => $result['code']])
-                ->field('id,code,project_code,name,pri,execute_status,description,create_by,done_by,done_time,create_time,assign_to,deleted,stage_code,done,begin_time,end_time,pcode,sort,id_num,status,resolution')
+                ->field(self::TASK_READ_FIELDS)
                 ->find()
                 ->toArray(),
             $project,
@@ -222,7 +224,7 @@ class JiraIssueService
     public static function notifyIssueUpdated(array $task, array $project, string $issueKey, ?array $actorMember = null): void
     {
         $fresh = Task::where(['code' => $task['code']])
-            ->field('id,code,project_code,name,pri,execute_status,description,create_by,done_by,done_time,create_time,assign_to,deleted,stage_code,done,begin_time,end_time,pcode,sort,id_num,status,resolution')
+            ->field(self::TASK_READ_FIELDS)
             ->find();
         if (!$fresh) {
             return;

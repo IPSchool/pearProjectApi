@@ -18,3 +18,6 @@
 /thinkphp
 /application
 /extend
+*.php.pid
+*.pyc
+workerman.log
